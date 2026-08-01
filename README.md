@@ -62,16 +62,34 @@ meshes, materials and diffuse textures:
 python3 selector.py 0x70021A13
 ```
 
+(Item DIDs are hex numbers, not names — this repo only extracts from the
+`.dat` files, it doesn't ship a name→DID lookup for arbitrary items. To find
+a DID from an item's *name*, either build `items_catalog.jsonl` below and
+search it — the viewer's search box, or `grep` the JSONL directly — or use
+[LotroCompanion](https://github.com/LotroCompanion)'s public item databases
+(e.g. [lotro-data](https://github.com/LotroCompanion/lotro-data) /
+`lotro-items-db`), which index items by name against the same DIDs.)
+
 Compose a full wearable (item × body) into one textured mesh and view it:
 
 ```bash
-python3 items_catalog.py                 # once: build the item search catalog
+python3 items_catalog.py                 # once: build the item search catalog (full sweep, several minutes)
 python3 compose.py 0x7000DA5B 0x20001E58 exquisite_dwarfM
 python3 app.py                           # → http://127.0.0.1:8722/
 ```
 
 The viewer serves a mesh browser with item search, per-body composition and
-dye preview at `/`, and skinned-animation playback at `/anim`.
+dye preview at `/`, and skinned-animation playback at `/anim`. Item search
+(`/search`) requires `items_catalog.jsonl` to exist — build it with
+`items_catalog.py` above before using the search box.
+
+For **named item lookup or character/inventory context** (not raw DID
+extraction), see the [LotroCompanion](https://github.com/LotroCompanion)
+project — `lotro-data`/`lotro-items-db` for item name databases,
+`lotro-companion` for character data. This toolkit's own alternative is
+[`items_catalog.py`](items_catalog.py): it builds a local, searchable
+`items_catalog.jsonl` straight from the client files (no external data
+needed), which is what the viewer's item search box queries.
 
 ## Documentation
 

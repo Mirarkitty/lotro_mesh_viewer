@@ -52,6 +52,15 @@ flowchart TD
     I --> J["rendered, optionally posed\nby a skeleton + animation clip"]
 ```
 
+The starting "item DID" is a raw hex identifier, not a name — this project
+has no name→DID lookup of its own for arbitrary items. Get one either by
+building [`items_catalog.py`](scripts/items_catalog.md)'s
+`items_catalog.jsonl` and searching it (the viewer's item search box does
+this), or from [LotroCompanion](https://github.com/LotroCompanion)'s public
+item databases (`lotro-data` / `lotro-items-db`), which index items by name
+against the same DID space; for character/inventory data (not covered by
+this toolkit at all) see LotroCompanion's `lotro-companion`.
+
 Every arrow above has a corresponding decoder script (see
 [scripts](scripts/) for per-tool documentation):
 

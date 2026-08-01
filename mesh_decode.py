@@ -383,6 +383,10 @@ if __name__ == "__main__":
         import sys
         json.dump(m, sys.stdout)
     elif args.json:
+        import os
+        d = os.path.dirname(args.json)
+        if d:
+            os.makedirs(d, exist_ok=True)
         with open(args.json, "w") as f:
             json.dump(m, f)
         print("wrote %s" % args.json)

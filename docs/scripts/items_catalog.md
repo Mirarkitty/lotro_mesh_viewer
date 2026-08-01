@@ -17,6 +17,13 @@ PropertiesSet — but performs that decode across the whole `client_gamelogic.da
 archive instead of one item at a time, plus resolves each item's display
 name from `client_local_English.dat`.
 
+This is this toolkit's own answer to "what item DID has the name I want" —
+built entirely from the local client files, no external data needed. For an
+alternative/complementary name→item lookup (or for character/inventory
+data, which this toolkit doesn't handle at all), see the
+[LotroCompanion](https://github.com/LotroCompanion) project's `lotro-data` /
+`lotro-items-db`.
+
 ## CLI usage
 
 ```

@@ -43,6 +43,11 @@ python3 mesh_decode.py 0x06001989 --json decoded/spindle.json
 python3 mesh_decode.py 0x0600D54A --no-textures --json -
 ```
 
+Note: `--json FILE` writes to `FILE` as given (parent directories are
+created if missing) — unlike [compose.py](compose.md)'s `outname`, which is
+always placed under the `decoded/` cache. Point `--json` at
+`decoded/<name>.json` if you want the viewer to pick the mesh up.
+
 Output: validation `stats` (see below) printed to stdout, and optionally the
 decoded mesh written as JSON.
 

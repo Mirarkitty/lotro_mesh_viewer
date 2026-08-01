@@ -30,7 +30,8 @@ python3 datfile.py <archive> info|walk|find|extract [DID] [-o FILE]
 | `did` | DID for `find`/`extract`, hex (e.g. `0x06001989`) |
 | `-o`, `--output FILE` | output file for `extract` (default `<DID>.bin`) |
 
-Examples:
+Examples (run from inside the game install directory, or give a full path —
+e.g. `"$LOTRO_DIR/client_mesh.dat"`):
 
 ```
 python3 datfile.py client_mesh.dat info

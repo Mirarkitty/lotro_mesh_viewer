@@ -21,6 +21,15 @@ Runs headless with **software GL** (`--use-gl=angle
 --ignore-gpu-blocklist`), specifically so it works on servers with no GPU —
 this is what makes it usable in CI or over SSH to a headless machine.
 
+Requires `playwright`, which is **not** installed by the base
+`requirements.txt` (see that file's comment) — install it and its browser
+separately:
+
+```bash
+pip install playwright
+playwright install chromium
+```
+
 ## CLI usage
 
 ```
