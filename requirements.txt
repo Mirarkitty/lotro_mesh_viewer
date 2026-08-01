@@ -1,0 +1,8 @@
+# Core decoding needs only numpy (vectorised vertex scan in mesh_decode.py).
+numpy
+# Texture extraction (DDS -> PNG) needs Pillow.
+Pillow
+# Optional: full-featured viewer server (app.py falls back to stdlib without it).
+flask
+# Optional: headless visual verification (screenshot.py).
+# playwright  (then: playwright install chromium)

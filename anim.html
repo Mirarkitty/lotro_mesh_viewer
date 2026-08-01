@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>LOTRO Anim Viewer</title>
+<style>
+  html,body{margin:0;height:100%;background:#14171c;color:#cdd6e0;font:13px system-ui,sans-serif;overflow:hidden}
+  #ui{position:fixed;top:10px;left:10px;z-index:10;background:#1e232b;padding:10px 12px;border-radius:8px;
+      box-shadow:0 2px 12px #0008;max-width:340px}
+  button{background:#2a313b;color:#cdd6e0;border:1px solid #3a434f;border-radius:5px;padding:5px 10px;
+         font:12px system-ui;cursor:pointer}
+  button:hover{background:#343d49}
+  label{display:inline-flex;align-items:center;gap:4px;margin-right:10px}
+  #stats{margin-top:8px;color:#8b98a8;font-size:11px;line-height:1.5}
+  #tslider{width:200px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div id="ui">
+  <h1 style="font-size:13px;margin:0 0 8px">◈ LOTRO Anim Viewer</h1>
+  <div>
+    <button id="play">pause</button>
+    <input id="tslider" type="range" min="0" max="1000" value="0"/>
+    <span id="tlabel">0.00s</span>
+  </div>
+  <div style="margin-top:6px">
+    <label><input type="checkbox" id="bindpose"/> bind pose</label>
+    <label><input type="checkbox" id="wire"/> wireframe</label>
+  </div>
+  <div id="stats">loading…</div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x14171c);
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.01, 5000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.4;
+renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = false;
+
+// Lighting rebalanced for three r155+ physical intensities + IBL fill; see
+// the note in outfit.html (the old values rendered at half this brightness).
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 1.3;
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x55503f, 2.6));
+// front-up-right key, front-left fill, back rim (the outfit viewer aims the
+// same rig off the skeleton's facing; these viewers have no facing to use)
+const key = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(-1.8,3.2,3); scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 1.2); fill.position.set(2.4,1.0,3); scene.add(fill);
+const rim = new THREE.DirectionalLight(0x88aaff, 1.3); rim.position.set(0,2.0,-3); scene.add(rim);
+const grid = new THREE.GridHelper(4, 16, 0x2a323d, 0x20262e); scene.add(grid);
+
+// same texture handling as index.html (flipV=true: use raw V, texture flipY=false)
+const texLoader = new THREE.TextureLoader();
+const texCache = {};
+function loadTex(did){
+  if (texCache[did]) return texCache[did];
+  const t = texLoader.load('/textures/'+did+'.png');
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.flipY = false;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  texCache[did] = t; return t;
+}
+const plainMat = ()=> new THREE.MeshStandardMaterial({color:0x6c8fc9, metalness:0.05,
+                        roughness:0.7, side:THREE.DoubleSide});
+const texMat = did => new THREE.MeshStandardMaterial({map:loadTex(did), metalness:0.02,
+                        roughness:0.85, side:THREE.DoubleSide});
+
+let mesh = null, bones = [], clip = null, playing = true, time = 0;
+window.animState = ()=>({time, playing, loaded: !!mesh});   // for scripted screenshots
+window.setTime = t => { time = t; playing = false; document.getElementById('play').textContent='play'; };
+// scripted camera orbit (screenshot tooling): angle in radians around the model
+window.setView = ang => {
+  if (!mesh) return;
+  const box = new THREE.Box3().setFromObject(mesh);
+  const c = box.getCenter(new THREE.Vector3());
+  const r = box.getSize(new THREE.Vector3()).length()/2 || 1;
+  controls.target.copy(c);
+  camera.position.set(c.x + 2.4*r*Math.cos(ang), c.y + 0.5*r, c.z + 2.4*r*Math.sin(ang));
+  controls.update();
+};
+
+const file = new URLSearchParams(location.search).get('f') || 'anim_dress_83893544.json';
+
+async function load(){
+  const d = await (await fetch('/decoded/'+file)).json();
+  clip = d.clip;
+
+  // --- bones (Z-up local transforms straight from the skeleton) ---
+  bones = d.bones.map(b=>{
+    const bn = new THREE.Bone();
+    bn.name = b.name;
+    bn.position.set(b.t[0], b.t[1], b.t[2]);
+    bn.quaternion.set(b.q[0], b.q[1], b.q[2], b.q[3]);
+    bn.scale.set(b.s[0], b.s[1], b.s[2]);
+    return bn;
+  });
+  const roots = [];
+  d.bones.forEach((b,i)=>{
+    if (b.parent >= 0) bones[b.parent].add(bones[i]);
+    else roots.push(bones[i]);
+  });
+
+  // --- geometry (Z-up, rotation applied on the OBJECT so bones share the space) ---
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(d.vertices.flat()), 3));
+  g.setIndex(d.triangles.flat());
+  if (d.normals && d.normals.length === d.vertices.length)
+    g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(d.normals.flat()), 3));
+  else g.computeVertexNormals();
+  if (d.uvs && d.uvs.length === d.vertices.length){
+    const uv = new Float32Array(d.uvs.length*2);
+    for (let i=0;i<d.uvs.length;i++){ uv[2*i]=d.uvs[i][0]; uv[2*i+1]=d.uvs[i][1]; }
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  }
+  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(d.skinIndices, 4));
+  g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(d.skinWeights, 4));
+
+  // --- per-submesh materials (one per unique texture), as index.html does ---
+  let material;
+  const texGroups = (d.groups||[]).filter(gr=>gr.texture);
+  if (texGroups.length){
+    const uniq = [...new Set(d.groups.map(gr=>gr.texture||'__none'))];
+    material = uniq.map(t=> t==='__none' ? plainMat() : texMat(t));
+    g.clearGroups();
+    for (const gr of d.groups) g.addGroup(gr.tri_start*3, gr.tri_count*3,
+                                          uniq.indexOf(gr.texture||'__none'));
+  } else material = plainMat();
+
+  mesh = new THREE.SkinnedMesh(g, material);
+  roots.forEach(r=> mesh.add(r));
+  mesh.bind(new THREE.Skeleton(bones));
+  mesh.rotation.x = -Math.PI/2;          // LOTRO Z-up -> three.js Y-up (object-level)
+  scene.add(mesh);
+
+  // fit camera to the posed object
+  mesh.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(mesh);
+  const c = box.getCenter(new THREE.Vector3());
+  const r = box.getSize(new THREE.Vector3()).length()/2 || 1;
+  controls.target.copy(c);
+  camera.position.copy(c).add(new THREE.Vector3(r*1.6, r*0.7, r*2.1));
+  camera.near = r/100; camera.far = r*100; camera.updateProjectionMatrix();
+  controls.update();                     // required after programmatic camera moves
+  grid.position.y = box.min.y;
+  grid.scale.setScalar(r/2);
+
+  document.getElementById('stats').innerHTML =
+    `<b>${d.id||file}</b><br>${d.vertices.length.toLocaleString()} verts · `+
+    `${d.triangles.length.toLocaleString()} tris · ${d.bones.length} bones<br>`+
+    `clip ${clip.did}: ${clip.duration.toFixed(3)}s · ${clip.frames} frames`;
+  window.animLoaded = true;
+}
+
+const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion();
+function applyPose(t){
+  if (!clip) return;
+  const n = clip.frames;
+  const ft = Math.min(Math.max(t/clip.duration, 0), 1) * (n-1);
+  const f0 = Math.floor(ft), f1 = Math.min(f0+1, n-1), a = ft - f0;
+  for (let i=0;i<bones.length;i++){
+    const tr = clip.tracks[i];
+    if (!tr || !tr.length) continue;
+    const A = tr[f0], B = tr[f1];
+    bones[i].position.set(A[0][0]+(B[0][0]-A[0][0])*a,
+                          A[0][1]+(B[0][1]-A[0][1])*a,
+                          A[0][2]+(B[0][2]-A[0][2])*a);
+    _qa.set(A[1][0],A[1][1],A[1][2],A[1][3]);
+    _qb.set(B[1][0],B[1][1],B[1][2],B[1][3]);
+    bones[i].quaternion.slerpQuaternions(_qa, _qb, a);
+    bones[i].scale.set(A[2][0]+(B[2][0]-A[2][0])*a,
+                       A[2][1]+(B[2][1]-A[2][1])*a,
+                       A[2][2]+(B[2][2]-A[2][2])*a);
+  }
+}
+function applyBindPose(){
+  if (!mesh) return;
+  // reset to skeleton rest transforms (stored on load in bone userData? recompute from json)
+  // bones were created at bind pose; re-set from the loaded values kept on each bone
+  for (const b of bones){
+    if (b.userData.bind){ b.position.fromArray(b.userData.bind.t);
+      b.quaternion.fromArray(b.userData.bind.q); b.scale.fromArray(b.userData.bind.s); }
+  }
+}
+
+const playBtn = document.getElementById('play');
+playBtn.onclick = ()=>{ playing = !playing; playBtn.textContent = playing?'pause':'play'; };
+const slider = document.getElementById('tslider');
+slider.oninput = ()=>{ if (clip){ time = slider.value/1000*clip.duration;
+                                  playing = false; playBtn.textContent='play'; } };
+document.getElementById('wire').onchange = e=>{
+  if (!mesh) return;
+  (Array.isArray(mesh.material)?mesh.material:[mesh.material]).forEach(m=>m.wireframe=e.target.checked);
+};
+
+let last = performance.now();
+function tick(now){
+  requestAnimationFrame(tick);
+  const dt = (now-last)/1000; last = now;
+  if (mesh && clip){
+    if (playing){ time = (time + dt) % clip.duration; slider.value = time/clip.duration*1000; }
+    document.getElementById('tlabel').textContent = time.toFixed(2)+'s';
+    if (document.getElementById('bindpose').checked) applyBindPose();
+    else applyPose(time);
+  }
+  controls.update();
+  renderer.render(scene, camera);       // render every frame -- no dirty flag
+}
+addEventListener('resize', ()=>{ camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+
+load().then(()=>{
+  // stash bind pose for the checkbox
+  for (const b of bones) b.userData.bind = {t:b.position.toArray(),
+                                            q:b.quaternion.toArray(), s:b.scale.toArray()};
+  requestAnimationFrame(tick);
+}).catch(e=>{ document.getElementById('stats').textContent = 'load failed: '+e; });
+</script>
+</body>
+</html>

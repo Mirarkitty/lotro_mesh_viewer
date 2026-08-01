@@ -1,0 +1,254 @@
+{
+ "Crimson": {
+  "rgb": [
+   152,
+   16,
+   16
+  ],
+  "hex": "#981010",
+  "floatCode": 0.04
+ },
+ "Red": {
+  "rgb": [
+   255,
+   0,
+   0
+  ],
+  "hex": "#FF0000",
+  "floatCode": 0.4
+ },
+ "Rust": {
+  "rgb": [
+   242,
+   137,
+   0
+  ],
+  "hex": "#F28900",
+  "floatCode": 0.35
+ },
+ "Orange": {
+  "rgb": [
+   255,
+   153,
+   0
+  ],
+  "hex": "#FF9900",
+  "floatCode": 0.75
+ },
+ "Gold": {
+  "rgb": [
+   218,
+   165,
+   32
+  ],
+  "hex": "#DAA520",
+  "floatCode": 0.3
+ },
+ "Yellow": {
+  "rgb": [
+   255,
+   242,
+   0
+  ],
+  "hex": "#FFF200",
+  "floatCode": 0.12
+ },
+ "Olive": {
+  "rgb": [
+   89,
+   113,
+   0
+  ],
+  "hex": "#597100",
+  "floatCode": 0.25
+ },
+ "Ranger Green": {
+  "rgb": [
+   162,
+   162,
+   0
+  ],
+  "hex": "#A2A200",
+  "floatCode": 0.07
+ },
+ "Dark Green": {
+  "rgb": [
+   23,
+   101,
+   38
+  ],
+  "hex": "#176526",
+  "floatCode": 0.2
+ },
+ "Forest Green": {
+  "rgb": [
+   21,
+   90,
+   21
+  ],
+  "hex": "#155A15",
+  "floatCode": 0.06
+ },
+ "Rivendell Green": {
+  "rgb": [
+   0,
+   65,
+   0
+  ],
+  "hex": "#004100",
+  "floatCode": 0.08
+ },
+ "Turquoise": {
+  "rgb": [
+   29,
+   196,
+   153
+  ],
+  "hex": "#1DC499",
+  "floatCode": 0.8
+ },
+ "Sea Blue": {
+  "rgb": [
+   64,
+   224,
+   208
+  ],
+  "hex": "#40E0D0",
+  "floatCode": 0.03
+ },
+ "Ered Luin Blue": {
+  "rgb": [
+   28,
+   14,
+   111
+  ],
+  "hex": "#1C0E6F",
+  "floatCode": 0.01
+ },
+ "Navy": {
+  "rgb": [
+   86,
+   103,
+   152
+  ],
+  "hex": "#566798",
+  "floatCode": 0.1
+ },
+ "Evendim Blue": {
+  "rgb": [
+   0,
+   79,
+   160
+  ],
+  "hex": "#004FA0",
+  "floatCode": 0.02
+ },
+ "Steel Blue": {
+  "rgb": [
+   48,
+   51,
+   51
+  ],
+  "hex": "#303333",
+  "floatCode": 0.13
+ },
+ "Rose": {
+  "rgb": [
+   234,
+   120,
+   159
+  ],
+  "hex": "#EA789F",
+  "floatCode": 0.11
+ },
+ "Violet": {
+  "rgb": [
+   238,
+   130,
+   238
+  ],
+  "hex": "#EE82EE",
+  "floatCode": 0.05
+ },
+ "Purple": {
+  "rgb": [
+   153,
+   51,
+   204
+  ],
+  "hex": "#9933CC",
+  "floatCode": 0.09
+ },
+ "Indigo": {
+  "rgb": [
+   75,
+   0,
+   130
+  ],
+  "hex": "#4B0082",
+  "floatCode": 0.15
+ },
+ "Burgundy": {
+  "rgb": [
+   92,
+   18,
+   43
+  ],
+  "hex": "#5C122B",
+  "floatCode": 0.65
+ },
+ "White": {
+  "rgb": [
+   255,
+   255,
+   255
+  ],
+  "hex": "#FFFFFF",
+  "floatCode": 0.6
+ },
+ "Sienna": {
+  "rgb": [
+   160,
+   82,
+   45
+  ],
+  "hex": "#A0522D",
+  "floatCode": 0.45
+ },
+ "Umber": {
+  "rgb": [
+   139,
+   69,
+   19
+  ],
+  "hex": "#8B4513",
+  "floatCode": 0.5
+ },
+ "Walnut Brown": {
+  "rgb": [
+   38,
+   31,
+   23
+  ],
+  "hex": "#261F17",
+  "floatCode": 0.14
+ },
+ "Grey": {
+  "rgb": [
+   128,
+   128,
+   128
+  ],
+  "hex": "#808080",
+  "floatCode": 0.7
+ },
+ "Black": {
+  "rgb": [
+   0,
+   0,
+   0
+  ],
+  "hex": "#000000",
+  "floatCode": 0.55
+ }
+}

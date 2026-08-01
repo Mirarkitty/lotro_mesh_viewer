@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>LOTRO Mesh Viewer</title>
+<style>
+  html,body{margin:0;height:100%;background:#14171c;color:#cdd6e0;font:13px system-ui,sans-serif;overflow:hidden}
+  #ui{position:fixed;top:10px;left:10px;z-index:10;background:#1e232b;padding:10px 12px;border-radius:8px;
+      box-shadow:0 2px 12px #0008;max-width:320px}
+  #ui h1{font-size:13px;margin:0 0 8px;color:#8 fb;letter-spacing:.3px}
+  select,button{background:#2a313b;color:#cdd6e0;border:1px solid #3a434f;border-radius:5px;padding:5px 8px;font:12px system-ui}
+  button{cursor:pointer}
+  button:hover{background:#343d49}
+  #stats{margin-top:8px;color:#8b98a8;font-size:11px;line-height:1.5}
+  label{display:inline-flex;align-items:center;gap:4px;margin-right:10px}
+  #empty{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#5c6675;text-align:center}
+</style>
+</head>
+<body>
+<div id="ui">
+  <h1>◈ LOTRO Mesh Viewer</h1>
+  <input id="q" placeholder="search items… (e.g. dress)" style="width:180px;background:#2a313b;color:#cdd6e0;border:1px solid #3a434f;border-radius:5px;padding:5px 8px;font:12px system-ui"/>
+  <select id="body" style="max-width:110px"></select>
+  <div id="hits" style="max-height:180px;overflow-y:auto;margin:6px 0"></div>
+  <div id="meta" style="display:none;margin:6px 0;padding:6px;background:#242a33;border-radius:6px;font-size:11px;line-height:1.6"></div>
+  <div style="margin-top:6px">
+    <select id="dye" style="max-width:130px"><option value="">no dye</option></select>
+    <select id="skin" style="max-width:110px"></select>
+  </div>
+  <div style="color:#5c6675;font-size:10px;margin-top:6px">decoded meshes (dev)</div>
+  <select id="pick"></select>
+  <button id="reload">↻</button>
+  <div style="margin-top:8px">
+    <label><input type="checkbox" id="wire"/> wireframe</label>
+    <label><input type="checkbox" id="spin" checked/> spin</label>
+    <label><input type="checkbox" id="flip" checked/> flipV</label>
+  </div>
+  <div id="stats">no mesh loaded</div>
+</div>
+<div id="empty">Waiting for a decoded mesh…<br>(drop a JSON in <code>decoded/</code>)</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x14171c);
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.01, 5000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.4;
+renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = false;          // no continuous settling -> can idle
+let dirty = true;                        // on-demand rendering flag
+controls.addEventListener('change', ()=> dirty = true);
+
+// Lighting rebalanced for three r155+ physical intensities + IBL fill; see
+// the note in outfit.html (the old values rendered at half this brightness).
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 1.3;
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x55503f, 2.6));
+// front-up-right key, front-left fill, back rim (the outfit viewer aims the
+// same rig off the skeleton's facing; these viewers have no facing to use)
+const key = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(-1.8,3.2,3); scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 1.2); fill.position.set(2.4,1.0,3); scene.add(fill);
+const rim = new THREE.DirectionalLight(0x88aaff, 1.3); rim.position.set(0,2.0,-3); scene.add(rim);
+const grid = new THREE.GridHelper(4, 16, 0x2a323d, 0x20262e); scene.add(grid);
+
+let current = null;
+let wireOn = false, flipV = true;   // flipV=true (raw V) is the correct orientation for
+                                    // these worn-appearance meshes (operator-confirmed:
+                                    // brown bodice on chest, skirt aligned); toggle off
+                                    // for the v->1-v orientation.
+const texLoader = new THREE.TextureLoader();
+const texCache = {};
+function loadTex(did){
+  if (texCache[did]) return texCache[did];
+  const t = texLoader.load('/textures/'+did+'.png');
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.flipY = false;                 // DXT/DDS data is top-down; V handled in the UV attr
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  texCache[did] = t; return t;
+}
+// plain fallback material when a submesh has no resolved texture
+const plainMat = ()=> new THREE.MeshStandardMaterial({color:0x6c8fc9, metalness:0.05,
+                        roughness:0.7, side:THREE.DoubleSide});
+function texMat(did){
+  return new THREE.MeshStandardMaterial({map:loadTex(did), metalness:0.02, roughness:0.85,
+                        side:THREE.DoubleSide});
+}
+
+function fit(geometry){
+  geometry.computeBoundingSphere();
+  const s = geometry.boundingSphere;
+  controls.target.copy(s.center);
+  const d = s.radius * 2.6;
+  camera.position.copy(s.center).add(new THREE.Vector3(d*0.6, d*0.4, d*0.8));
+  camera.near = s.radius/100; camera.far = s.radius*100; camera.updateProjectionMatrix();
+  grid.position.y = s.center.y - s.radius;
+  const sc = s.radius; grid.scale.setScalar(sc/2);
+}
+
+let currentFile = null, currentSig = '';
+let loadSeq = 0;
+async function load(file, doFit=true){
+  const seq = ++loadSeq;
+  const d = await (await fetch('/decoded/'+file)).json();
+  if (seq !== loadSeq) return;   // a newer load started while we fetched - drop this one
+  if (current){ scene.remove(current); current.geometry.dispose(); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(d.vertices.flat()), 3));
+  g.setIndex(d.triangles.flat());
+  if (d.normals && d.normals.length===d.vertices.length)
+    g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(d.normals.flat()),3));
+  else g.computeVertexNormals();
+  // UVs: DXT/DDS textures are top-down, so flip V (v -> 1-v) into the attribute.
+  if (d.uvs && d.uvs.length===d.vertices.length){
+    const uv = new Float32Array(d.uvs.length*2);
+    for (let i=0;i<d.uvs.length;i++){ uv[2*i]=d.uvs[i][0]; uv[2*i+1]=flipV? d.uvs[i][1] : 1-d.uvs[i][1]; }
+    g.setAttribute('uv', new THREE.BufferAttribute(uv,2));
+  }
+  g.rotateX(-Math.PI/2);  // LOTRO is Z-up; three.js is Y-up -> stand meshes upright
+
+  // Build per-submesh groups -> a material array (one texture per group), else 1 material.
+  let material;
+  clothMats = []; skinMats = [];
+  const groups = (d.groups||[]).filter(gr=>gr.texture);
+  if (groups.length && d.groups){
+    const uniq = [...new Set(d.groups.map(gr=>gr.texture||'__none'))];
+    material = uniq.map(t=>{
+      if (t==='__none') return plainMat();
+      if (t==='skintone'){
+        const m = new THREE.MeshStandardMaterial({color:skinColor(), metalness:0.0,
+                        roughness:0.6, side:THREE.DoubleSide});
+        skinMats.push(m); return m;
+      }
+      const m = texMat(t); m.userData.texDid = t; clothMats.push(m); return m;
+    });
+    g.clearGroups();
+    for (const gr of d.groups){
+      const mi = uniq.indexOf(gr.texture||'__none');
+      g.addGroup(gr.tri_start*3, gr.tri_count*3, mi);
+    }
+  } else {
+    material = plainMat();
+  }
+  (Array.isArray(material)?material:[material]).forEach(m=> m.wireframe=wireOn);
+  current = new THREE.Mesh(g, material); scene.add(current);
+  if (doFit) fit(g);
+  applyDye();
+  currentFile = file; currentSig = d.vertices.length+'/'+d.triangles.length+'/'+flipV;
+  document.getElementById('empty').style.display='none';
+  const texList = [...new Set((d.groups||[]).map(gr=>gr.texture).filter(Boolean))];
+  document.getElementById('stats').innerHTML =
+    `<b>${d.id||file}</b><br>${d.vertices.length.toLocaleString()} verts · ${d.triangles.length.toLocaleString()} tris`
+    + (texList.length? `<br>tex: ${texList.join(', ')}` : '<br>tex: none');
+  dirty = true;
+}
+
+// Repopulate the dropdown only; never touches the camera or reloads geometry.
+async function updateList(){
+  const items = await (await fetch('/list')).json();
+  const sel = document.getElementById('pick'), prev = sel.value;
+  sel.innerHTML = items.map(m=>`<option value="${m.file}">${m.id} (${m.verts}v/${m.tris}t)</option>`).join('');
+  if ([...sel.options].some(o=>o.value===prev)) sel.value=prev;
+  return items;
+}
+// Timer: refresh the list; if the CURRENT mesh's geometry changed on disk, reload it
+// IN PLACE (doFit=false) so a decoder update shows up without resetting your view.
+async function poll(){
+  const items = await updateList();
+  if (!items.length){ document.getElementById('empty').style.display='flex';
+                      document.getElementById('stats').textContent='no meshes decoded yet'; return; }
+  const cur = items.find(m=>m.file===currentFile);
+  if (cur && (cur.verts+'/'+cur.tris)!==currentSig) load(currentFile, false);
+}
+document.getElementById('pick').onchange = e=>load(e.target.value, true);   // new pick -> fit
+document.getElementById('reload').onclick = async ()=>{ await updateList(); if(currentFile) load(currentFile, false); };
+document.getElementById('wire').onchange = e=>{ wireOn=e.target.checked;
+  if(current){ const ms=Array.isArray(current.material)?current.material:[current.material];
+    ms.forEach(m=>m.wireframe=wireOn);} dirty=true; };
+document.getElementById('flip').onchange = e=>{ flipV=e.target.checked;
+  if(currentFile) load(currentFile,false); };
+document.getElementById('spin').onchange = ()=> dirty=true;
+addEventListener('resize', ()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+                                 renderer.setSize(innerWidth,innerHeight); dirty=true;});
+const spin = document.getElementById('spin');
+function tick(){ requestAnimationFrame(tick);
+  if(current && spin.checked){ current.rotation.y += 0.005; dirty=true; }
+  if (dirty){ controls.update(); renderer.render(scene,camera); dirty=false; } }
+tick();
+updateList().then(items=>{ if(items.length){ load(document.getElementById('pick').value, true); }
+                           else document.getElementById('empty').style.display='flex'; });
+setInterval(poll, 5000);
+// ---- dye + skin tone ----
+let clothMats = [], skinMats = [], dyeTable = {};
+const SKINS = {"fair":"#EFD0B8","tan":"#C99B72","brown":"#8D5D3F","dark":"#5C3A26"};
+const dyeEl = document.getElementById('dye'), skinEl = document.getElementById('skin');
+skinEl.innerHTML = Object.keys(SKINS).map(k=>`<option value="${k}">skin: ${k}</option>`).join('');
+fetch('/dyes').then(r=>r.json()).then(t=>{
+  dyeTable = t;
+  dyeEl.innerHTML = '<option value="">no dye</option>' +
+    Object.keys(t).sort().map(n=>`<option value="${n}">${n}</option>`).join('');
+  dyeEl.value = localStorage.getItem('dye') || '';
+  skinEl.value = localStorage.getItem('skin') || 'fair';
+});
+function skinColor(){ return new THREE.Color(SKINS[skinEl.value || 'fair']); }
+async function applyDye(){
+  const dye = dyeEl.value;
+  for (const m of clothMats){
+    const did = m.userData.texDid;
+    if (!did) continue;
+    if (!dye){ m.map = loadTex(did); }
+    else {
+      try {
+        const res = await (await fetch(`/dyedtex?tex=${did}&dye=${encodeURIComponent(dye)}`)).json();
+        if (res.file) m.map = loadTex(res.file.replace(/\.png$/,''));
+      } catch(e){}
+    }
+    m.needsUpdate = true;
+  }
+  skinMats.forEach(m=>{ m.color.copy(skinColor()); });
+  dirty = true;
+}
+dyeEl.onchange = ()=>{ localStorage.setItem('dye', dyeEl.value); applyDye(); };
+skinEl.onchange = ()=>{ localStorage.setItem('skin', skinEl.value); applyDye(); };
+
+// ---- item search -> on-demand compose ----
+const qEl = document.getElementById('q'), hitsEl = document.getElementById('hits'),
+      bodyEl = document.getElementById('body');
+let searchTimer = null, lastHits = [];
+qEl.oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(doSearch, 250); };
+async function doSearch(){
+  const q = qEl.value.trim();
+  if (q.length < 2){ hitsEl.innerHTML=''; return; }
+  lastHits = await (await fetch('/search?q='+encodeURIComponent(q))).json();
+  hitsEl.innerHTML = lastHits.map((r,i) =>
+    `<div data-i="${i}" style="padding:2px 4px;cursor:pointer;border-radius:4px"
+          onmouseover="this.style.background='#343d49'" onmouseout="this.style.background=''">${r.name}</div>`).join('');
+  for (const div of hitsEl.children) div.onclick = () => pickItem(lastHits[+div.dataset.i]);
+}
+async function pickItem(r){
+  document.getElementById('stats').textContent = 'checking bodies…';
+  const bodies = await (await fetch(`/bodies?item=0x${r.did.toString(16)}`)).json();
+  bodyEl.innerHTML = bodies.map(b =>
+    `<option value="0x${b.app.toString(16).toUpperCase()}" ${b.present?'':'disabled'}>` +
+    `${b.label}${b.present?'':' ✗'}</option>`).join('');
+  const meta = document.getElementById('meta');
+  meta.style.display = 'block';
+  meta.innerHTML = `<b>${r.name}</b><br>` +
+    `item 0x${r.did.toString(16).toUpperCase()} · class ${r.item_class ?? '?'}<br>` +
+    `slot: ${r.slot_name || '?'} · level ${r.level ?? '?'} · quality ${r.quality ?? '?'}` +
+    (r.clothing_color ? `<br>dye code ${r.clothing_color.toFixed(2)}` : '') +
+    `<br>bodies: ` + bodies.map(b=>`${b.label}${b.present?'':'&nbsp;✗'}`).join(', ');
+  const pref = localStorage.getItem('prefBodyLabel');
+  const pick = bodies.find(b => b.present && b.label === pref) || bodies.find(b => b.present);
+  if (!pick){ document.getElementById('stats').textContent = 'no renderable body for this item'; return; }
+  bodyEl.value = '0x' + pick.app.toString(16).toUpperCase();
+  bodyEl.onchange = () => {
+    const sel = bodies.find(b => '0x'+b.app.toString(16).toUpperCase() === bodyEl.value);
+    if (sel) localStorage.setItem('prefBodyLabel', sel.label);
+    composeItem(r);
+  };
+  composeItem(r);
+}
+async function composeItem(r){
+  document.getElementById('stats').textContent = 'composing '+r.name+'…';
+  const res = await (await fetch(`/compose?item=0x${r.did.toString(16)}&app=${bodyEl.value}`)).json();
+  if (res.error){ document.getElementById('stats').textContent = 'compose failed: '+res.error; return; }
+  await updateList();
+  document.getElementById('pick').value = res.file;
+  await load(res.file, true);
+}
+ // pick up NEW meshes into the list; in-place reload if current changed
+</script>
+</body>
+</html>

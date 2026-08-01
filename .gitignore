@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+# regeneratable caches (decoded meshes, extracted textures)
+decoded/
+textures/
+# generated catalog (rebuild with items_catalog.py)
+items_catalog.jsonl
+# raw extraction output (datfile.py extract)
+*.bin
+# screenshots from the visual-verification loop
+*.png
