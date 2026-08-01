@@ -130,6 +130,18 @@ on at least two independent examples. `screenshot.py` automates the loop;
 - [exyorha/hkxparse](https://github.com/exyorha/hkxparse) — Havok binary
   tagfile wire-format reference.
 
+## Licensing
+
+The repository as a whole is distributed under the **GPLv3** ([LICENSE](LICENSE)),
+because [`havok_anim.py`](havok_anim.py) ports the spline-compressed-animation
+decompressor from [PredatorCZ/HavokLib](https://github.com/PredatorCZ/HavokLib)
+(GPLv3).
+
+Every file **except** `havok_anim.py` is additionally available under the
+**MIT license** ([LICENSE.MIT](LICENSE.MIT)). Practically: if you don't need
+animation decoding, remove `havok_anim.py` (and `export_skinned.py`'s import
+of it) and you may use everything else under MIT.
+
 ## Legal
 
 This is an interoperability/preservation research project. It contains **no

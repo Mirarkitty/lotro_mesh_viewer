@@ -1,5 +1,10 @@
 """Decoder for LOTRO's Havok animation clips (0x05 records in client_anim.dat).
 
+LICENSE NOTE: unlike the rest of this repository (MIT-dual-licensed), this
+file is GPLv3 only -- its spline-track decompressor is a port of
+PredatorCZ/HavokLib (GPLv3). See LICENSE and the Licensing section of the
+README.
+
 LOTRO does NOT ship Havok binary *packfiles* (magic 0x57E0E057) — the 0x05
 records are Havok binary *tagfiles*: magic dwords 0xCAB00D1E 0xD011FACE,
 preceded by a 13-byte LOTRO prefix:
