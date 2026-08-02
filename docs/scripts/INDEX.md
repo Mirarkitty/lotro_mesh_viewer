@@ -29,6 +29,7 @@ implement, see the parent [docs/](../) directory
 | `charparts.py` | Chargen head/hair/beard (APR) compositor + CLI | [charparts.md](charparts.md) |
 | `api_common.py` | Framework-free backend shared by both servers: catalog/search/sets, clip listing, LotroCompanion import, composition, dye/texture baking | [api_common.md](api_common.md) |
 | `outfit_app.py`, `outfit.html` | The multi-slot outfit composer server + front-end (Flask, port 8723) | [outfit_app.md](outfit_app.md) |
+| `explore.py` | dig from a name or any DID: resolution tree + reverse lookups | [explore.md](explore.md) |
 | `screenshot.py` | Playwright headless visual-verification screenshots | [screenshot.md](screenshot.md) |
 
 ## Reading order

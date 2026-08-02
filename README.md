@@ -108,6 +108,10 @@ is only needed for `screenshot.py`, see
 That's the whole setup. More one-liners to try:
 
 ```bash
+python3 explore.py aurochs                  # dig: matching items -> bodies, keys,
+                                            #   materials, meshes, textures as a tree
+python3 explore.py 0x0600D250 --deep        # dig from a mesh ID: submeshes, shaders,
+                                            #   and every item that wears it
 python3 tex_extract.py texture 0x41231998   # extract one texture to PNG
 python3 selector.py 0x70021A13              # item -> per-body mesh/material/texture bindings
 python3 shaders.py                          # the classified 0x2B shader table
@@ -178,6 +182,7 @@ instead of the defaults.
 | [`shaders.py`](shaders.py) | `0x2B` shader classification: alpha-test cutout vs. tint mask, dyeable, metallic ([docs](docs/scripts/shaders.md)) |
 | [`propset.py`](propset.py) | PropertiesSet deserializer ([docs](docs/scripts/propset.md)) |
 | [`selector.py`](selector.py) | item → garment mesh/material selector ([docs](docs/scripts/selector.md)) |
+| [`explore.py`](explore.py) | dig from a name or any DID: full resolution tree + reverse lookups ([docs](docs/scripts/explore.md)) |
 | [`wearable2.py`](wearable2.py) | strict 0x20 worn-appearance parser ([docs](docs/scripts/wearable2.md)) |
 | [`compose.py`](compose.py) | item × body → single textured viewer mesh ([docs](docs/scripts/compose.md)) |
 | [`items_catalog.py`](items_catalog.py) | searchable wearable-item catalog ([docs](docs/scripts/items_catalog.md)) |
