@@ -49,52 +49,59 @@ this repository.
 See [docs/overview.md](docs/overview.md) for the end-to-end pipeline and
 [docs/limitations.md](docs/limitations.md) for what is not solved yet.
 
-## Quick start
+## Quickstart: this is how you get it running
 
-Requires Python 3.8+, a LOTRO installation, and `pip install -r requirements.txt`
-(numpy; Pillow for textures; Flask optional for the full viewer; Playwright
-optional for headless screenshots).
-
-Point the tools at your game install with `--game-dir`, or set it once:
+From zero to a textured garment in your browser in about 3 minutes (plus
+~5 minutes of one-time catalog extraction if you want item search by name).
+You need **Python 3.8+** and a **LOTRO installation** — the tools only read
+the game's `client_*.dat` files, they never modify them.
 
 ```bash
+# 1. Clone and install dependencies                                (~1 min)
+git clone https://github.com/Mirarkitty/lotro_mesh_viewer.git
+cd lotro_mesh_viewer
+pip install numpy Pillow flask
+
+# 2. Point the tools at your game install (adjust the path;
+#    every tool also accepts --game-dir instead)
 export LOTRO_DIR="$HOME/The Lord of the Rings Online"
+
+# 3. Smoke test: decode one mesh                                   (seconds)
+python3 mesh_decode.py 0x06001989
+#    -> prints stats; "sliver_tris 0" and "indices_in_range True" = working
+
+# 4. Compose a real garment (Exquisite Dress on the Dwarf body)
+#    and start the viewer                                          (~30 s)
+python3 compose.py 0x7000DA5B 0x20001E58 exquisite_dwarfM
+python3 app.py
+#    -> open http://127.0.0.1:8722/ and pick "exquisite_dwarfM":
+#       you should see the shaded dress from the screenshot below
+
+# 5. Optional: build the item catalog once to enable searching
+#    ~23,000 wearables BY NAME in the viewer's search box          (~5 min)
+python3 items_catalog.py
 ```
 
-Decode a mesh and check it:
+(`pip install -r requirements.txt` works too; Flask is optional — without
+it `app.py` falls back to a stdlib server with the basic routes. Playwright
+is only needed for `screenshot.py`, see
+[its docs](docs/scripts/screenshot.md).)
+
+That's the whole setup. More one-liners to try:
 
 ```bash
-python3 mesh_decode.py 0x06001989 --json decoded/spindle.json
+python3 tex_extract.py texture 0x41231998   # extract one texture to PNG
+python3 selector.py 0x70021A13              # item -> per-body mesh/material/texture bindings
+python3 shaders.py                          # the classified 0x2B shader table
+python3 havok_anim.py 0x050039EA            # decode an animation clip
 ```
 
-Extract a texture:
-
-```bash
-python3 tex_extract.py texture 0x41231998
-```
-
-Resolve an item (the Sleeveless Summer Dress) to its per-body garment
-meshes, materials and diffuse textures:
-
-```bash
-python3 selector.py 0x70021A13
-```
-
-(Item DIDs are hex numbers, not names — this repo only extracts from the
-`.dat` files, it doesn't ship a name→DID lookup for arbitrary items. To find
-a DID from an item's *name*, either build `items_catalog.jsonl` below and
-search it — the viewer's search box, or `grep` the JSONL directly — or use
+Item DIDs are hex numbers, not names — to find a DID from an item's *name*,
+build the catalog (step 5) and use the viewer's search box or `grep` the
+JSONL directly, or use
 [LotroCompanion](https://github.com/LotroCompanion)'s public item databases
 (e.g. [lotro-data](https://github.com/LotroCompanion/lotro-data) /
-`lotro-items-db`), which index items by name against the same DIDs.)
-
-Compose a full wearable (item × body) into one textured mesh and view it:
-
-```bash
-python3 items_catalog.py                 # once: build the item search catalog (full sweep, several minutes)
-python3 compose.py 0x7000DA5B 0x20001E58 exquisite_dwarfM
-python3 app.py                           # → http://127.0.0.1:8722/
-```
+`lotro-items-db`), which index items by name against the same DIDs.
 
 The viewer serves a mesh browser with item search, per-body composition and
 dye preview at `/`, and skinned-animation playback at `/anim`.
