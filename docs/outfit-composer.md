@@ -54,6 +54,15 @@ Only the item IDs and dye names come from LotroCompanion; every byte of
 geometry, texture and animation is decoded live from the client `.dat`
 files by this repository's modules.
 
+On Linux, [lotro_extractor](https://github.com/Mirarkitty/lotro_extractor)
+can produce the LotroCompanion-compatible character files natively
+(LotroCompanion's own importer is Windows-only), plus the optional
+`appearance_extracted.json` (per-character chargen styles and colors, which
+LotroCompanion doesn't create yet) — placed in the repository directory or
+via `$LOTRO_APPEARANCE_JSON`, it makes loaded characters render with their
+real face, hair and coloring. See
+[api_common.md](scripts/api_common.md) for the lookup details.
+
 ## What each control exercises
 
 | Control | Module / format doc |

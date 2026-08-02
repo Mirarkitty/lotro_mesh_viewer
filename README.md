@@ -139,6 +139,18 @@ project — `lotro-data`/`lotro-items-db` for item name databases,
 `items_catalog.jsonl` straight from the client files (no external data
 needed), which is what the viewer's item search box queries.
 
+**Getting your character data under Linux**: LotroCompanion's character
+importer (which produces the saved-outfit files the composer loads) reads
+the running game client's memory and is Windows-only.
+[lotro_extractor](https://github.com/Mirarkitty/lotro_extractor) does the
+same natively on Linux and writes LotroCompanion-compatible character
+files. It also produces **`appearance_extracted.json`** — each character's
+actual head/hair/beard styles and skin/hair/eye colors — which
+LotroCompanion doesn't create (yet). Drop that file into this repository's
+directory (or point `$LOTRO_APPEARANCE_JSON` at it) and the composer
+renders each loaded character with their real face, hairstyle and coloring
+instead of the defaults.
+
 ## Documentation
 
 **Formats** (byte-level, enough to re-implement without this code):
