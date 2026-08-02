@@ -191,13 +191,13 @@ independently on two different race/sex body types.
 
 ## Open
 
-- Hair tint (the character hair-color property) and the face compositor
-  layer system are not implemented — only base diffuses render. The
-  alpha-cutout-vs-tint-mask distinction discussed above is resolved at the
-  *format* level (see [shaders.md](shaders.md)), but no script in this
-  repository currently composes chargen head/hair geometry at all, so
-  neither the shader classification nor the hair-color property has
-  anywhere to plug into yet.
+- The face compositor layer system (eyebrows/complexion/mouth layers,
+  compositor file `0x33000002`) is not implemented — heads render their
+  base diffuse only. Chargen head/hair geometry itself IS composed by
+  [charparts.py](scripts/charparts.md) (used by the
+  [outfit composer](outfit-composer.md)'s face/hair rendering, including
+  the alpha-cutout hair shader routing and skin/hair tinting via
+  [api_common.py](scripts/api_common.md)'s texture baking).
 - The Man-vs-Elf chargen table split, inferred from body scale and
   beard-slot presence rather than name-resolved, is not confirmed against
   the live game's character-creation screen.

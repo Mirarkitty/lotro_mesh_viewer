@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>LOTRO Outfit Composer</title>
+<style>
+  html,body{margin:0;height:100%;background:#14171c;color:#cdd6e0;font:13px system-ui,sans-serif;overflow:hidden}
+  #ui{position:fixed;top:10px;left:10px;z-index:10;background:#1e232b;padding:10px 12px;border-radius:8px;
+      box-shadow:0 2px 12px #0008;width:360px;max-height:95vh;overflow-y:auto}
+  #ui h1{font-size:13px;margin:0 0 8px;color:#8fb;letter-spacing:.3px}
+  select,button,input{background:#2a313b;color:#cdd6e0;border:1px solid #3a434f;border-radius:5px;padding:4px 7px;font:12px system-ui}
+  button{cursor:pointer} button:hover{background:#343d49}
+  .slotrow{display:flex;gap:4px;align-items:center;margin:3px 0}
+  .slotlabel{width:64px;color:#8b98a8;font-size:11px;text-align:right}
+  .slotitem{flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#cfe0c8}
+  .hits{background:#242a33;border-radius:6px;margin:2px 0 6px 68px;max-height:130px;overflow-y:auto;font-size:11px}
+  .hits div{padding:2px 6px;cursor:pointer;border-radius:4px}
+  .hits div:hover{background:#343d49}
+  #stats{margin-top:8px;color:#8b98a8;font-size:11px;line-height:1.5}
+  #stats.err{color:#f57f7f}
+  #setbtn{margin:6px 0 0 68px;display:none}
+  #pbar{height:4px;background:#242a33;border-radius:2px;margin:2px 0 8px;overflow:hidden;display:none}
+  #pfill{height:100%;background:#7fdc9a;width:0%;transition:width .2s}
+  #pfill.indet{width:30%;animation:indet 1.1s linear infinite}
+  @keyframes indet{0%{margin-left:-30%}100%{margin-left:100%}}
+</style>
+</head>
+<body>
+<div id="ui">
+  <h1>◈ LOTRO Outfit Composer</h1>
+  <div id="pbar"><div id="pfill"></div></div>
+  <div class="slotrow">
+    <span class="slotlabel">body</span>
+    <select id="body"></select>
+    <select id="skin"></select>
+    <select id="hair"></select>
+    <label style="font-size:11px;color:#8b98a8;display:inline-flex;align-items:center;gap:3px">
+      <input type="checkbox" id="animate" checked/>animate</label>
+    <label style="font-size:11px;color:#8b98a8;display:inline-flex;align-items:center;gap:3px">
+      <input type="checkbox" id="face" checked/>face</label>
+  </div>
+  <div class="slotrow">
+    <span class="slotlabel">anim</span>
+    <select id="clipsel" style="flex:1;min-width:0;max-width:220px"></select>
+  </div>
+  <div class="slotrow">
+    <span class="slotlabel">motion</span>
+    <select id="motionsel" style="flex:1;min-width:0;max-width:220px"
+            title="foot-based classification: gait cycle (walk/run x direction) and posture (standing/kneel)">
+      <option value="">any motion</option>
+      <option value="loco">walking or running</option>
+      <option value="walk">walking</option>
+      <option value="run">running</option>
+      <option value="fwd">forward</option>
+      <option value="back">backward</option>
+      <option value="strafe">strafing</option>
+      <option value="standing">standing still</option>
+      <option value="kneel">kneeling</option>
+      <option value="unclassified">unclassified</option>
+    </select>
+  </div>
+  <div class="slotrow">
+    <span class="slotlabel">filter</span>
+    <select id="ridesel" style="width:104px" title="mounted clips are ~38% of the Man/Elf pool">
+      <option value="">riding: show</option>
+      <option value="hide">riding: hide</option>
+      <option value="only">riding: only</option>
+    </select>
+    <label style="font-size:11px;color:#8b98a8;display:inline-flex;align-items:center;gap:3px"
+           title="collapse clips whose motion is identical (dup_scan.py) to one row">
+      <input type="checkbox" id="dedupe" checked/>dedupe</label>
+    <span id="clipcount" style="font-size:11px;color:#8b98a8"></span>
+  </div>
+  <div class="slotrow">
+    <span class="slotlabel"></span>
+    <input id="clipname" placeholder="name this clip…" style="width:140px"/>
+    <button id="nameit">name it</button>
+  </div>
+  <div class="slotrow" id="toonrow" style="display:none">
+    <span class="slotlabel">toon</span>
+    <select id="toonsel" style="width:104px"></select>
+    <select id="outfitsel" style="flex:1;min-width:0;max-width:200px"></select>
+  </div>
+  <div class="slotrow">
+    <span class="slotlabel">set</span>
+    <input id="q_set" placeholder="search sets…" style="width:110px"/>
+    <select id="w_set" style="width:70px">
+      <option value="">any</option><option>light</option>
+      <option>medium</option><option>heavy</option>
+    </select>
+    <select id="dye_set" style="width:64px"><option value="">dye all</option></select>
+  </div>
+  <div class="hits" id="hits_set" style="display:none"></div>
+  <div id="slots"></div>
+  <div id="setbtn"><button id="applyset"></button></div>
+  <div style="margin-top:6px"><button id="fit">fit view</button></div>
+  <div id="stats">pick items for any slot</div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const SLOTS = ["Head","Shoulders","Back","Chest","Hands","Legs","Feet"];
+const BODIES = ["Man-M","Man-F","Hobbit-M","Hobbit-F","Dwarf-M","Elf-M","Elf-F"];
+const SKINS = {"fair":[239,208,184],"tan":[201,155,114],"brown":[141,93,63],"dark":[92,58,38]};
+// Hair textures are GREYSCALE neutral maps (measured: mean saturation 1.4, RGB
+// channels equal at 135/135/135), so they are meaningless untinted — that is
+// why the default avatar rendered with white hair. There is always a hair
+// colour now: the character's own, else this swatch.
+const HAIRS = {"black":[28,20,16],"brown":[92,58,34],"auburn":[138,62,26],
+               "blond":[196,158,96],"grey":[168,164,158],"white":[226,224,220]};
+
+// ---------- three.js scene (no spinning; orbit only) ----------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x14171c);
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.01, 5000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(devicePixelRatio);
+// three r155+ dropped useLegacyLights and made light intensities physical, so
+// the values below (tuned under the old model) rendered the character at a
+// mean luminance of 30/255 — the reported "very dim" symptom. Fixed with
+// the three things a MeshStandardMaterial scene actually needs: filmic tone
+// mapping, an environment for image-based fill (a PBR material lit only by
+// directional lights has no ambient/specular response and reads as muddy), and
+// intensities rebalanced for the physical model.
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = false;
+let dirty = true;
+controls.addEventListener('change', ()=> dirty = true);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.75;    // ambient fill; the key still shapes
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x55503f, 1.7));
+// Initial positions are the facing=+Z fallback worked out by hand, NOT a call
+// to aimLights(): facingDir() reads `rig`, which is a const declared further
+// down, so calling it up here dies in the temporal dead zone. aimLights() takes
+// over from fitScene()/ensureRig() as soon as a skeleton exists.
+const key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(-1.8, 3.2, 3);
+const fill = new THREE.DirectionalLight(0xffffff, 0.9); fill.position.set(2.4, 1.0, 3);
+const rim = new THREE.DirectionalLight(0x88aaff, 1.0); rim.position.set(0, 2.0, -3);
+scene.add(key, fill, rim);
+// The rig is CHARACTER-RELATIVE, not world-fixed: a DirectionalLight only cares
+// about (position - target), and its target defaults to the origin, so pointing
+// each light is just placing it along a direction built from the character's
+// own facing. Fixed world positions lit whichever way the model happened to be
+// authored — the same assumption that had the default camera behind the head.
+//   key  = front, up and to the right (matches the default camera side)
+//   fill = front-left and low, to open the shadow side
+//   rim  = behind and above, for edge separation against the dark background
+function aimLights(){
+  const f = facingDir();
+  const right = new THREE.Vector3().crossVectors(f, camera.up).normalize();
+  const up = camera.up;
+  key.position.copy(f).multiplyScalar(3.0)
+     .addScaledVector(right, 1.8).addScaledVector(up, 3.2);
+  fill.position.copy(f).multiplyScalar(3.0)
+      .addScaledVector(right, -2.4).addScaledVector(up, 1.0);
+  rim.position.copy(f).multiplyScalar(-3.0).addScaledVector(up, 2.0);
+  dirty = true;
+}
+const grid = new THREE.GridHelper(4, 16, 0x2a323d, 0x20262e); scene.add(grid);
+camera.position.set(1.6, 1.4, 2.2); controls.target.set(0, 0.9, 0); controls.update();
+
+const texLoader = new THREE.TextureLoader();
+const texCache = {};
+function loadTex(name){
+  if (texCache[name]) return texCache[name];
+  const t = texLoader.load('/textures/'+name+'.png', ()=> dirty=true);
+  t.colorSpace = THREE.SRGBColorSpace; t.flipY = false;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  texCache[name] = t; return t;
+}
+const plainMat = ()=> new THREE.MeshStandardMaterial({color:0x6c8fc9, metalness:0.05, roughness:0.7, side:THREE.DoubleSide});
+
+// Per-submesh render settings from the surface's 0x2B shader (shaders.py,
+// exported by compose/_shader_fields). Everything used to be flat opaque cloth,
+// which made alpha-cutout surfaces (hair, filigree, the Harvest-brew Circlet)
+// render as blocky opaque patches and metal look like matte fabric.
+function matFor(gr, tex){
+  const m = new THREE.MeshStandardMaterial({
+    map: tex ? loadTex(tex) : null,
+    side: THREE.DoubleSide,
+    metalness: gr && gr.metallic ? 0.85 : 0.02,
+    roughness: gr && gr.metallic ? 0.35 : 0.85,
+  });
+  if (gr && gr.alpha_test){
+    // a CUTOUT, not blending: no sorting artefacts and it works on both faces
+    m.alphaTest = 0.5;
+    m.transparent = false;
+  }
+  return m;
+}
+// group -> a key that must not merge submeshes needing different materials
+const matKey = gr => [gr.texture || '__none', gr.shader || '', !!gr.alpha_test,
+                      !!gr.metallic].join('|');
+
+// ---------- state ----------
+// per slot: {item: <search row>, mesh: THREE.Mesh, clothMats: [], skinMats: [], dye: ''}
+const state = {};
+let loadSeq = {};
+
+// ---------- shared rig (one skeleton per body; every slot's SkinnedMesh binds
+// to it so the whole outfit moves as one character) ----------
+const rig = {label:null, bones:null, skeleton:null, group:null, clip:null, defaultClipDid:null};
+let animTime = 0, animPaused = false;
+function animOn(){ return document.getElementById('animate').checked; }
+function clearRig(){
+  if (rig.group) scene.remove(rig.group);
+  rig.label = rig.bones = rig.skeleton = rig.group = rig.clip = rig.defaultClipDid = null;
+}
+function ensureRig(d, label){
+  if (rig.label === label && rig.skeleton){
+    // Guard the shared-rig assumption: a mesh skinned against a different bone
+    // count silently renders in bind pose. Better to rebuild than to bind wrong.
+    if (d.bones && d.bones.length !== rig.bones.length){
+      console.warn(`rig bone-count mismatch for ${label}: mesh ${d.bones.length}`
+                   + ` vs rig ${rig.bones.length} — rebuilding`);
+    } else return;
+  }
+  clearRig();
+  const bones = d.bones.map(b=>{
+    const bn = new THREE.Bone(); bn.name = b.name;
+    bn.position.set(b.t[0], b.t[1], b.t[2]);
+    bn.quaternion.set(b.q[0], b.q[1], b.q[2], b.q[3]);
+    bn.scale.set(b.s[0], b.s[1], b.s[2]);
+    return bn;
+  });
+  const roots = [];
+  d.bones.forEach((b,i)=>{
+    if (b.parent >= 0) bones[b.parent].add(bones[i]); else roots.push(bones[i]);
+  });
+  const group = new THREE.Group();
+  group.rotation.x = -Math.PI/2;        // LOTRO Z-up -> three.js Y-up (object level)
+  roots.forEach(r=> group.add(r));
+  scene.add(group);
+  group.updateMatrixWorld(true);        // bind-pose world matrices...
+  rig.skeleton = new THREE.Skeleton(bones);  // ...feed the boneInverses here
+  rig.bones = bones; rig.group = group; rig.label = label;
+  // Clip payloads are no longer embedded per slot (they were identical in all
+  // of them — ~80% of a set's download). Fetch the one clip once, here.
+  rig.defaultClipDid = d.clip_did || null;
+  rig.clip = null;
+  animTime = 0;
+  aimLights();                          // facing is known now: re-aim the rig
+  applyChosenClip();                    // the user's chosen clip, else the default
+}
+const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion();
+function applyPose(t){
+  if (!rig.clip || !rig.bones) return;
+  const n = rig.clip.frames;
+  const ft = Math.min(Math.max(t/rig.clip.duration, 0), 1) * (n-1);
+  const f0 = Math.floor(ft), f1 = Math.min(f0+1, n-1), a = ft - f0;
+  for (let i=0;i<rig.bones.length;i++){
+    const tr = rig.clip.tracks[i];
+    if (!tr || !tr.length) continue;
+    const A = tr[f0], B = tr[f1];
+    rig.bones[i].position.set(A[0][0]+(B[0][0]-A[0][0])*a,
+                              A[0][1]+(B[0][1]-A[0][1])*a,
+                              A[0][2]+(B[0][2]-A[0][2])*a);
+    _qa.set(A[1][0],A[1][1],A[1][2],A[1][3]);
+    _qb.set(B[1][0],B[1][1],B[1][2],B[1][3]);
+    rig.bones[i].quaternion.slerpQuaternions(_qa, _qb, a);
+    rig.bones[i].scale.set(A[2][0]+(B[2][0]-A[2][0])*a,
+                           A[2][1]+(B[2][1]-A[2][1])*a,
+                           A[2][2]+(B[2][2]-A[2][2])*a);
+  }
+}
+// scripted screenshots: freeze the loop at a clip phase (0..1)
+window.setPhase = p => { animPaused = true;
+  if (rig.clip) applyPose(p * rig.clip.duration); };
+window.animState = ()=>({clip: rig.clip && rig.clip.did, bones: rig.bones && rig.bones.length,
+                         paused: animPaused, label: rig.label,
+                         sel: (typeof clipSel !== 'undefined') && clipSel.value,
+                         face: !!(face && face.mesh)});
+
+// A loaded character's own colour beats the manual swatch; there is always one.
+function skinRGB(){ return charColors.skin
+  || SKINS[document.getElementById('skin').value] || SKINS.fair; }
+function hairRGB(){ return charColors.hair
+  || HAIRS[document.getElementById('hair').value] || HAIRS.brown; }
+function skinColor(){ return rgb(skinRGB()); }
+
+async function composeSlot(slot){
+  const st = state[slot];
+  if (!st || !st.item) return;
+  const bodyLabel = document.getElementById('body').value;
+  const seq = (loadSeq[slot] = (loadSeq[slot]||0) + 1);
+  opBegin(`composing ${slot}: ${st.item.name}…`);
+  try {
+  const bodies = await (await fetch(`/bodies?item=0x${st.item.did.toString(16)}`)).json();
+  const b = bodies.find(x => x.label === bodyLabel && x.present);
+  setItemLabel(slot, st.item.name + (b ? '' : ' ✗(body)'));
+  if (!b){ clearMesh(slot); setErr(`${slot}: not shipped for ${bodyLabel}`);
+           if (slot === 'Head') composeFace(); return; }
+  const q = `item=0x${st.item.did.toString(16)}&app=0x${b.app.toString(16).toUpperCase()}`;
+  let d = null, skinned = false;
+  if (animOn()){                              // skinned path; static fallback below
+    const res = await (await fetch(`/compose_skinned?${q}`)).json();
+    if (!res.error){
+      d = await (await fetch('/decoded/'+res.file)).json();
+      d.clip_did = res.clip_did;              // clip is fetched separately now
+      st.overrides = res.overrides || {};
+      skinned = true;
+    }
+  }
+  if (!d){
+    const res = await (await fetch(`/compose?${q}`)).json();
+    if (res.error){ clearMesh(slot); setErr(`${slot}: ${res.error}`); return; }
+    st.overrides = res.overrides || {};
+    d = await (await fetch('/decoded/'+res.file)).json();
+    // A static mesh is NOT skinned and never animates. This fallback used to be
+    // silent, which is indistinguishable from "the animation is broken" — say it.
+    if (animOn()) console.warn(`${slot}: skinned compose failed, static fallback`
+                               + ` — this slot will not animate`);
+    st.staticFallback = animOn();
+  }
+  if (seq !== loadSeq[slot]) return;          // stale
+  // ...and stale for the other reason: the body changed while we were fetching.
+  // This mesh was composed for a DIFFERENT skeleton; binding it to the current
+  // rig gives a mesh that renders but never follows the animation. The slot is
+  // recomposed for the new body anyway, so dropping this one loses nothing.
+  if (bodyLabel !== document.getElementById('body').value){
+    clearMesh(slot); composeSlot(slot); return;    // recompose for the new body
+  }
+  clearMesh(slot);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(d.vertices.flat()), 3));
+  g.setIndex(d.triangles.flat());
+  if (d.normals && d.normals.length === d.vertices.length)
+    g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(d.normals.flat()), 3));
+  else g.computeVertexNormals();
+  if (d.uvs && d.uvs.length === d.vertices.length){
+    const uv = new Float32Array(d.uvs.length*2);
+    for (let i=0;i<d.uvs.length;i++){ uv[2*i]=d.uvs[i][0]; uv[2*i+1]=d.uvs[i][1]; }  // raw V (flipV)
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  }
+  if (skinned) st.staticFallback = false;
+  if (skinned){
+    g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(d.skinIndices, 4));
+    g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(d.skinWeights, 4));
+    ensureRig(d, bodyLabel);                 // shared skeleton for the body
+  } else {
+    g.rotateX(-Math.PI/2);                   // static path bakes the Z-up fix
+  }
+  st.clothMats = []; st.skinMats = [];
+  const keys = [], byKey = new Map();
+  for (const gr of (d.groups||[])){
+    const k = matKey(gr);
+    if (byKey.has(k)) continue;
+    byKey.set(k, keys.length); keys.push(gr);
+  }
+  const mats = keys.map(gr=>{
+    const t = gr.texture || '__none';
+    if (t === '__none') return plainMat();
+    if (t === 'skintone'){
+      const m = new THREE.MeshStandardMaterial({color:skinColor(), roughness:0.6, side:THREE.DoubleSide});
+      st.skinMats.push(m); return m;
+    }
+    const m = matFor(gr, t);
+    m.userData.texDid = t; st.clothMats.push(m); return m;
+  });
+  g.clearGroups();
+  for (const gr of (d.groups||[]))
+    g.addGroup(gr.tri_start*3, gr.tri_count*3, byKey.get(matKey(gr)));
+  if (skinned){
+    const sm = new THREE.SkinnedMesh(g, mats);
+    sm.frustumCulled = false;                // animated verts leave the bind bbox
+    rig.group.add(sm);
+    sm.updateMatrixWorld(true);
+    sm.bind(rig.skeleton, sm.matrixWorld);   // bindMatrix in the same (rotated) space as the boneInverses
+    st.mesh = sm;
+  } else {
+    st.mesh = new THREE.Mesh(g, mats);
+    scene.add(st.mesh);
+  }
+  await applySlotDye(slot);
+  applyVisibility();                           // this garment may blank others
+  if (st.staticFallback) setItemLabel(slot, st.item.name + ' ⚠ not animated');
+  setStat(`${slot}: ${st.item.name}` + (st.staticFallback ? ' — NOT ANIMATED' : ''));
+  if (slot === 'Head') composeFace();          // headwear decides hair
+  fitScene();
+  dirty = true;
+  } catch (e){ setErr(`${slot}: ${e}`); }
+  finally { opEnd(); }
+}
+
+// ---------- default head (face) + hair ----------
+const face = {mesh:null};
+let faceSeq = 0;
+function faceOn(){ return document.getElementById('face').checked; }
+function clearFace(){
+  if (face.mesh){ (face.mesh.parent || scene).remove(face.mesh);
+                  face.mesh.geometry.dispose(); face.mesh = null; }
+  dirty = true;
+}
+async function composeFace(){
+  const seq = ++faceSeq;
+  if (!faceOn()){ clearFace(); return; }
+  const body = bodyEl.value;
+  opBegin('composing face…');
+  try {
+  // Bare hands come from the BODY, not the outfit: the chest garment supplies
+  // arm skin only down to the wrist. Ask for them unless a Hands item is worn
+  // or a shown garment already provides a hands part.
+  const need = part => {
+    const worn = !!(state[part] && state[part].item && state[part].visible);
+    // a garment that PROVIDES the part supersedes the bare one; one that BLANKS
+    // it (a floor-length dress over the feet) means nothing should be there
+    const covered = SLOTS.some(s2 => { const st2 = state[s2];
+      return st2 && st2.item && st2.visible && (st2.overrides||{})[part]; });
+    return (worn || covered) ? 0 : 1;
+  };
+  let q = `body=${encodeURIComponent(body)}&hands=${need('Hands')}&feet=${need('Feet')}` +
+          `&head_style=${charStyles.head || 0}&hair_style=${charStyles.hair || 0}`;
+  // Headwear decides the hair — but only while it is actually SHOWN. Unticking
+  // a hood or hat (or any garment whose entry blanks the hair slot) has to give
+  // the hair back, exactly as unticking a dress gives the leggings back.
+  const hs = state['Head'];
+  const hi = hs && hs.item && hs.visible && !hs.autoHidden ? hs.item : null;
+  if (hi){
+    const bodies = await (await fetch(`/bodies?item=0x${hi.did.toString(16)}`)).json();
+    const b = bodies.find(x => x.label === body && x.present);
+    if (b) q += `&head_item=0x${hi.did.toString(16)}&head_app=0x${b.app.toString(16).toUpperCase()}`;
+  }
+  const res = await (await fetch(`/compose_face?${q}`)).json();
+  if (res.error){ setErr('face: ' + res.error); return; }
+  const d = await (await fetch('/decoded/'+res.file)).json();
+  d.clip_did = res.clip_did;                        // clip fetched separately
+  if (seq !== faceSeq || !faceOn()) return;         // stale
+  // Body changed mid-fetch: this head belongs to the old skeleton. Dropping it
+  // alone would leave the OLD face bound to a dead rig, so recompose for the
+  // body that is actually selected — the guard has to heal, not just refuse.
+  if (body !== bodyEl.value){ clearFace(); composeFace(); return; }
+  clearFace();
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(d.vertices.flat()), 3));
+  g.setIndex(d.triangles.flat());
+  if (d.normals && d.normals.length === d.vertices.length)
+    g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(d.normals.flat()), 3));
+  else g.computeVertexNormals();
+  if (d.uvs && d.uvs.length === d.vertices.length){
+    const uv = new Float32Array(d.uvs.length*2);
+    for (let i=0;i<d.uvs.length;i++){ uv[2*i]=d.uvs[i][0]; uv[2*i+1]=d.uvs[i][1]; }
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  }
+  // OPAQUE always: texture alpha is a TINT/dye mask in this data, NOT opacity
+  // (transparent/alphaTest here punches the facial skin out, leaving floating
+  // eyes+mouth). Hair strand edges render solid — known cosmetic limitation.
+  const uniq = [...new Set((d.groups||[]).map(gr => gr.texture || '__none'))];
+  // which textures belong to the hair, so the character's hair colour can tint
+  // them (the hair mesh has its own texture; the head does not share it)
+  const hairTex = new Set((d.groups||[]).filter(gr => gr.part === 'hair')
+                                        .map(gr => gr.texture || '__none'));
+  // head AND hands: both are bare skin drawn from a neutral map, so both take
+  // the baked skin tint. Without the hands the character had a tan face and arms
+  // but pale white hands.
+  const headTex = new Set((d.groups||[])
+      .filter(gr => gr.part === 'head' || gr.part === 'hands' || gr.part === 'feet')
+      .map(gr => gr.texture || '__none'));
+  const grFor = {};
+  for (const gr of (d.groups||[])) grFor[gr.texture || '__none'] = gr;
+  const mats = uniq.map(t => {
+    if (t === '__none') return plainMat();
+    const m = matFor(grFor[t], t);
+    if (hairTex.has(t)) m.color.copy(rgb(hairRGB()));
+    return m;
+  });
+  // The FACE cannot be tinted with material.color: the head texture is an atlas
+  // whose face region is a neutral skin map but which also carries the eye and
+  // eyebrow patches, and a material tint would colour those too. The server
+  // bakes it instead, honouring the alpha tint-mask so the protected features
+  // survive (api_common.skin_tinted_texture).
+  {
+    for (const t of headTex){
+      if (t === '__none') continue;
+      const i = uniq.indexOf(t);
+      fetch(`/skintex?tex=${t}&rgb=${skinRGB().join(',')}`)
+        .then(r => r.json()).then(res => {
+          if (res.file && mats[i]){
+            mats[i].map = loadTex(res.file.replace(/\.png$/, ''));
+            mats[i].needsUpdate = true; dirty = true;
+          }
+        }).catch(()=>{});
+    }
+  }
+  g.clearGroups();
+  for (const gr of (d.groups||[]))
+    g.addGroup(gr.tri_start*3, gr.tri_count*3, uniq.indexOf(gr.texture || '__none'));
+  if (animOn() && d.skinIndices){
+    g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(d.skinIndices, 4));
+    g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(d.skinWeights, 4));
+    ensureRig(d, body);
+    const sm = new THREE.SkinnedMesh(g, mats);
+    sm.frustumCulled = false;
+    rig.group.add(sm);
+    sm.updateMatrixWorld(true);
+    sm.bind(rig.skeleton, sm.matrixWorld);
+    face.mesh = sm;
+  } else {
+    g.rotateX(-Math.PI/2);
+    face.mesh = new THREE.Mesh(g, mats);
+    scene.add(face.mesh);
+  }
+  dirty = true;
+  } catch (e){ setErr('face: ' + e); }
+  finally { opEnd(); }
+}
+
+// World-space direction the character faces, flattened to the ground plane.
+// Falls back to +Z when there is no rig (static path) or no eye bones.
+function facingDir(){
+  const fallback = () => new THREE.Vector3(0, 0, 1);   // inline: aimLights()
+  if (!rig.bones) return fallback();                   // runs before any const
+  const find = re => rig.bones.find(b => re.test(b.name));
+  const head = find(/head$/), le = find(/leye/), re_ = find(/reye/);
+  if (!head || !le || !re_) return fallback();
+  const h = new THREE.Vector3(), a = new THREE.Vector3(), b = new THREE.Vector3();
+  head.getWorldPosition(h); le.getWorldPosition(a); re_.getWorldPosition(b);
+  const f = a.add(b).multiplyScalar(0.5).sub(h);
+  f.y = 0;
+  return f.lengthSq() < 1e-9 ? fallback() : f.normalize();
+}
+
+function fitScene(){
+  const box = new THREE.Box3();
+  let any = false;
+  for (const slot of SLOTS){
+    const m = state[slot] && state[slot].mesh;
+    if (m){ box.expandByObject(m); any = true; }
+  }
+  if (face.mesh){ box.expandByObject(face.mesh); any = true; }
+  if (!any) return;
+  if (!isFinite(box.min.x) || !isFinite(box.max.x)) return;   // NaN guard
+  const c = box.getCenter(new THREE.Vector3());
+  const r = Math.max(box.getSize(new THREE.Vector3()).length()/2, 0.3);
+  controls.target.copy(c);
+  // FRONT-RIGHT of the character, at its mid height. "Front" is derived from
+  // the skeleton rather than assumed: the eyes-minus-head vector, flattened to
+  // the ground plane — the same facing convention gait_flags_scan uses, and the
+  // reason the old fixed +x/+z offset showed the character's back.
+  aimLights();                       // lights follow the character, not the world
+  const f = facingDir();
+  const right = new THREE.Vector3().crossVectors(f, camera.up).normalize();
+  camera.position.copy(c)
+        .addScaledVector(f, r*1.75)        // in front
+        .addScaledVector(right, r*0.95);   // and to its right
+  camera.position.y = c.y;                 // eye level = mid height of the body
+  camera.near = r/100; camera.far = r*100; camera.updateProjectionMatrix();
+  controls.update();
+  grid.position.y = box.min.y;
+  dirty = true;
+}
+
+// A slot renders when the user has it ticked AND no worn garment blanks it.
+// The blanking is the game's own mechanic, read from the chest item's wearable
+// entry (api_common.slot_overrides): a floor-length dress carries STUB meshes
+// for the Legs and Feet part tags, meaning "those slots show nothing".
+function applyVisibility(){
+  const blanked = {};
+  for (const s of SLOTS){
+    const st = state[s];
+    // Only a garment that is itself SHOWN blanks other slots. Untick the dress
+    // and the leggings it was hiding come back — otherwise the slot would stay
+    // empty with nothing on screen explaining why.
+    if (!st || !st.item || !st.visible) continue;
+    for (const [t, kind] of Object.entries(st.overrides || {}))
+      if (kind === 'blank' && t !== s) blanked[t] = s;
+  }
+  for (const s of SLOTS){
+    const st = state[s];
+    if (!st) continue;
+    st.autoHidden = !!blanked[s];
+    if (st.mesh) st.mesh.visible = st.visible && !st.autoHidden;
+    const cb = document.getElementById('vis_' + s);
+    if (cb){
+      cb.indeterminate = st.autoHidden && st.visible;   // on, but overridden
+      cb.title = st.autoHidden
+        ? `hidden by ${blanked[s]} (the garment blanks this slot)`
+        : "visible (LotroCompanion 'visible' flag)";
+    }
+    const lab = document.getElementById('item_' + s);
+    if (lab) lab.style.opacity = (st.visible && !st.autoHidden) ? '1' : '0.45';
+  }
+  dirty = true;
+  // whether the BODY needs to supply bare hands depends on what is shown
+  const want = JSON.stringify([
+    // headwear visibility feeds the hair decision, so it belongs in this key
+    !!(state['Head'] && state['Head'].item && state['Head'].visible
+       && !state['Head'].autoHidden),
+    ...['Hands', 'Feet'].map(part => [
+    !!(state[part] && state[part].item && state[part].visible),
+    SLOTS.some(s2 => { const st2 = state[s2];
+      return st2 && st2.item && st2.visible && (st2.overrides||{})[part]; })])]);
+  if (want !== applyVisibility._bare){ applyVisibility._bare = want; composeFace(); }
+}
+
+function clearMesh(slot){
+  const st = state[slot];
+  if (st && st.mesh){ (st.mesh.parent || scene).remove(st.mesh);
+                      st.mesh.geometry.dispose(); st.mesh = null; }
+  dirty = true;
+}
+
+async function applySlotDye(slot){
+  const st = state[slot];
+  if (!st) return;
+  for (const m of (st.clothMats||[])){
+    const did = m.userData.texDid;
+    if (!did) continue;
+    if (!st.dye){ m.map = loadTex(did); }
+    else {
+      const res = await (await fetch(`/dyedtex?tex=${did}&dye=${encodeURIComponent(st.dye)}`)).json();
+      if (res.file) m.map = loadTex(res.file.replace(/\.png$/,''));
+    }
+    m.needsUpdate = true;
+  }
+  for (const m of (st.skinMats||[])) m.color.copy(skinColor());
+  dirty = true;
+}
+
+// ---------- UI ----------
+const slotsDiv = document.getElementById('slots');
+let dyeNames = [];
+const statsEl = document.getElementById('stats');
+function setStat(t){ statsEl.textContent = t; statsEl.classList.remove('err'); }
+function setErr(t){ statsEl.textContent = t; statsEl.classList.add('err'); }
+
+// ---- progress bar: every async compose/clip op registers itself; the bar
+// aggregates (set apply = N slot ops + face). try/finally in each op
+// guarantees aborted/stale ops release their slot — the bar never sticks.
+const pbar = document.getElementById('pbar'), pfill = document.getElementById('pfill');
+let opsTotal = 0, opsDone = 0;
+function opBegin(label){
+  opsTotal++;
+  if (label) setStat(`${label} ${opsDone + 1}/${opsTotal}`);
+  opRedraw();
+}
+function opEnd(){
+  opsDone++;
+  if (opsDone >= opsTotal){ opsTotal = opsDone = 0; pbar.style.display = 'none'; pfill.classList.remove('indet'); }
+  else opRedraw();
+}
+function opRedraw(){
+  pbar.style.display = 'block';
+  if (opsTotal <= 1){ pfill.classList.add('indet'); }
+  else { pfill.classList.remove('indet'); pfill.style.width = (100 * opsDone / opsTotal) + '%'; }
+}
+function setItemLabel(slot, t){ const el = document.getElementById('item_'+slot);
+  el.textContent = t || '—'; el.title = t || ''; }
+
+for (const slot of SLOTS){
+  state[slot] = {item:null, mesh:null, dye:'', visible:true, autoHidden:false};
+  const row = document.createElement('div');
+  row.innerHTML = `
+    <div class="slotrow">
+      <span class="slotlabel">${slot}</span>
+      <input type="checkbox" id="vis_${slot}" checked title="visible (LotroCompanion 'visible' flag)"/>
+      <input id="q_${slot}" placeholder="search ${slot.toLowerCase()}…" style="width:96px"/>
+      <span class="slotitem" id="item_${slot}">—</span>
+      <select id="dye_${slot}" style="width:60px"><option value="">dye</option></select>
+      <button id="x_${slot}" title="clear">×</button>
+    </div>
+    <div class="hits" id="hits_${slot}" style="display:none"></div>`;
+  slotsDiv.appendChild(row);
+  const q = row.querySelector('#q_'+slot), hits = row.querySelector('#hits_'+slot);
+  let timer = null;
+  q.oninput = ()=>{ clearTimeout(timer); timer = setTimeout(async ()=>{
+    if (q.value.trim().length < 2){ hits.style.display='none'; return; }
+    const rs = await (await fetch(`/search?q=${encodeURIComponent(q.value.trim())}&slot=${slot}`)).json();
+    hits.innerHTML = rs.map((r,i)=>`<div data-i="${i}">${r.name}</div>`).join('') || '<div>(no hits)</div>';
+    hits.style.display = 'block';
+    for (const div of hits.children)
+      div.onclick = ()=>{ hits.style.display='none'; q.value=''; pickItem(slot, rs[+div.dataset.i]); };
+  }, 250); };
+  row.querySelector('#x_'+slot).onclick = ()=>{ state[slot].item=null; state[slot].overrides={};
+    setItemLabel(slot,''); clearMesh(slot); applyVisibility();
+    if (slot === 'Head') composeFace(); updateHash(); };
+  row.querySelector('#dye_'+slot).onchange = e=>{ state[slot].dye = e.target.value;
+    applySlotDye(slot); updateHash(); };
+  row.querySelector('#vis_'+slot).onchange = e=>{ state[slot].visible = e.target.checked;
+    applyVisibility(); updateHash(); };
+}
+
+async function pickItem(slot, r){
+  state[slot].item = r;
+  setItemLabel(slot, r.name);
+  composeSlot(slot);
+  updateHash();
+  // set detection
+  const sm = await (await fetch(`/setmates?did=0x${r.did.toString(16)}`)).json();
+  const others = Object.entries(sm.slots || {}).filter(([s,items]) => s !== slot && items.length);
+  const btn = document.getElementById('applyset'), box = document.getElementById('setbtn');
+  if (others.length >= 2){
+    btn.textContent = `apply set “${sm.stem}” (${others.length + 1} pieces)`;
+    box.style.display = 'block';
+    btn.onclick = ()=>{
+      for (const [s, items] of others){ state[s].item = items[0]; setItemLabel(s, items[0].name); composeSlot(s); }
+      updateHash();
+      box.style.display = 'none';
+    };
+  } else box.style.display = 'none';
+}
+
+
+// ---- set search + set-wide dye ----
+const qSet = document.getElementById('q_set'), hitsSet = document.getElementById('hits_set'),
+      wSet = document.getElementById('w_set'), dyeSet = document.getElementById('dye_set');
+let setTimer = null;
+async function doSetSearch(){
+  if (qSet.value.trim().length < 2){ hitsSet.style.display='none'; return; }
+  const rs = await (await fetch(`/sets?q=${encodeURIComponent(qSet.value.trim())}&weight=${wSet.value}`)).json();
+  hitsSet.innerHTML = rs.map((r,i) =>
+    `<div data-i="${i}" title="${r.stem}">${r.stem} <span style="color:#8b98a8">(${r.nslots} slots${r.weight? ', '+r.weight:''})</span></div>`).join('') || '<div>(no sets)</div>';
+  hitsSet.style.display = 'block';
+  for (const div of hitsSet.children)
+    div.onclick = ()=>{ hitsSet.style.display='none'; applyFullSet(rs[+div.dataset.i]); };
+}
+qSet.oninput = ()=>{ clearTimeout(setTimer); setTimer = setTimeout(doSetSearch, 250); };
+wSet.onchange = doSetSearch;
+function applyFullSet(setrow){
+  for (const slot of SLOTS){
+    const items = setrow.slots[slot];
+    if (items && items.length){
+      state[slot].item = items[0];
+      setItemLabel(slot, items[0].name);
+      composeSlot(slot);
+    }
+  }
+  updateHash();
+}
+dyeSet.onchange = ()=>{
+  for (const slot of SLOTS){
+    state[slot].dye = dyeSet.value;
+    const el = document.getElementById('dye_'+slot);
+    if (el) el.value = dyeSet.value;
+    applySlotDye(slot);
+  }
+  updateHash();
+};
+// body + skin selectors
+const bodyEl = document.getElementById('body'), skinEl = document.getElementById('skin'),
+      hairEl = document.getElementById('hair');
+bodyEl.innerHTML = BODIES.map(b=>`<option>${b}</option>`).join('');
+skinEl.innerHTML = Object.keys(SKINS).map(k=>`<option value="${k}">skin: ${k}</option>`).join('');
+hairEl.innerHTML = Object.keys(HAIRS).map(k=>`<option value="${k}">hair: ${k}</option>`).join('');
+hairEl.value = localStorage.getItem('hair') || 'brown';
+hairEl.onchange = ()=>{ localStorage.setItem('hair', hairEl.value);
+                        charColors.hair = null; composeFace(); };
+bodyEl.value = localStorage.getItem('outfitBody') || 'Man-F';
+skinEl.value = localStorage.getItem('skin') || 'fair';
+bodyEl.onchange = ()=>{ localStorage.setItem('outfitBody', bodyEl.value);
+  loadClipList(); composeFace(); for (const s of SLOTS) composeSlot(s); updateHash(); };
+skinEl.onchange = ()=>{ localStorage.setItem('skin', skinEl.value);
+  charColors.skin = null;                     // manual swatch overrides
+  for (const s of SLOTS) applySlotDye(s); composeFace(); updateHash(); };
+
+// ---- animation clip selector (audition + persistent naming) ----
+const clipSel = document.getElementById('clipsel');
+let clipList = [];
+function clipLabel(c){
+  // hex DID ALWAYS visible; name (when given) prefixes it; classifier flags
+  // are suffix decorations. List order is flat ascending DID (server-side) so
+  // "next item" stays put when a clip gets named.
+  const hex = '0x' + c.did.toString(16).toUpperCase().padStart(8,'0');
+  let s = (c.name ? c.name + ' | ' : '') + hex + ` (${(+c.duration).toFixed(2)}s)`;
+  if (c.dup_n > 1) s += ` x${c.dup_n}`;   // motion-identical siblings folded in
+  if (c.gait) s += ` [${c.gait}]`;
+  else if (c.posture) s += ` [${c.posture}]`;   // gait owns loco, posture the rest
+  if (c.stance) s += ` [${c.stance}]`;
+  if (c.pose) s += ` [${c.pose}]`;   // pose-graph endpoints (base-A = sit-down…)
+  if (c.idle) s += ' [idle?]';
+  if (c.partial) s += ' [partial?]';
+  if (c.transition) s += ' [transition?]';
+  return s;
+}
+const motionSel = document.getElementById('motionsel'),
+      rideSel = document.getElementById('ridesel'),
+      dedupeEl = document.getElementById('dedupe'),
+      clipCount = document.getElementById('clipcount');
+async function loadClipList(){
+  const body = bodyEl.value;
+  const q = `body=${encodeURIComponent(body)}&riding=${rideSel.value}` +
+            `&dedupe=${dedupeEl.checked ? 1 : 0}&motion=${motionSel.value}`;
+  try { clipList = await (await fetch(`/clips?${q}`)).json(); }
+  catch (e){ clipList = []; }
+  if (!Array.isArray(clipList)) clipList = [];
+  clipSel.innerHTML = '<option value="">(default)</option>' +
+    clipList.map(c=>`<option value="${c.did}">${clipLabel(c)}</option>`).join('');
+  const folded = clipList.reduce((a,c)=> a + (c.dup_n > 1 ? c.dup_n - 1 : 0), 0);
+  clipCount.textContent = clipList.length + (folded ? ` (−${folded} dup)` : '');
+  const stored = localStorage.getItem('outfitClip_' + body) || '';
+  clipSel.value = (stored && clipList.some(c => String(c.did) === stored)) ? stored : '';
+}
+motionSel.value = localStorage.getItem('outfitMotion') || '';
+motionSel.onchange = ()=>{ localStorage.setItem('outfitMotion', motionSel.value);
+                           loadClipList(); };
+rideSel.value = localStorage.getItem('outfitRiding') || '';
+rideSel.onchange = ()=>{ localStorage.setItem('outfitRiding', rideSel.value);
+                         loadClipList(); };
+dedupeEl.onchange = loadClipList;
+// Abort-on-switch: picking a new clip instantly cancels any in-flight clip
+// fetch (AbortController) AND invalidates late arrivals (monotonic token), so
+// rapid stepping can never apply a stale clip and fool the audition. The old
+// clip stops immediately (rig.clip = null freezes the current pose); the new
+// one starts at t=0 when it lands.
+let clipToken = 0, clipAbort = null;
+const clipCache = new Map();                    // body/did -> decoded clip JSON
+async function fetchClip(did, body, signal){
+  const k = body + '/' + did;
+  if (clipCache.has(k)) return clipCache.get(k);
+  const d = await (await fetch(`/clip?did=${did}&body=${encodeURIComponent(body)}`,
+                               {signal})).json();
+  if (!d.error) clipCache.set(k, d);            // re-auditioning a clip is instant
+  return d;
+}
+async function applyChosenClip(){
+  const tok = ++clipToken;
+  if (clipAbort){ clipAbort.abort(); clipAbort = null; }
+  const body = bodyEl.value, sel = clipSel.value;
+  if (sel) localStorage.setItem('outfitClip_' + body, sel);
+  else localStorage.removeItem('outfitClip_' + body);
+  const did = sel || rig.defaultClipDid;        // (default) falls back to the body's clip
+  rig.clip = null;                              // stop the old clip NOW
+  animTime = 0; dirty = true;
+  if (!did) return;                             // no clip at all -> bind pose
+  clipAbort = new AbortController();
+  opBegin('loading clip…');
+  let d;
+  try {
+    try {
+      d = await fetchClip(did, body, clipAbort.signal);
+    } catch (e){
+      if (e.name !== 'AbortError') setErr(`clip ${did}: ${e}`);
+      return;
+    }
+    if (tok !== clipToken) return;              // a newer pick superseded us
+    if (d.error){ setErr(`clip ${did}: ${d.error}`); return; }
+    if (rig.bones && d.tracks && d.tracks.length !== rig.bones.length){
+      setErr(`clip ${did}: ${d.tracks.length} tracks != ${rig.bones.length} bones`); return; }
+    rig.clip = d; animTime = 0; dirty = true;
+    const row = clipList.find(c => String(c.did) === String(did));
+    if (sel) setStat('clip: ' + (row ? clipLabel(row) : did));
+  } finally { opEnd(); }
+}
+clipSel.onchange = ()=>{ animPaused = false; applyChosenClip(); updateHash(); };
+document.getElementById('nameit').onclick = async ()=>{
+  const did = clipSel.value;
+  if (!did){ setStat('pick a clip to name'); return; }
+  const name = document.getElementById('clipname').value.trim();
+  const r = await (await fetch(`/clipname?did=${did}&name=${encodeURIComponent(name)}` +
+                               `&body=${encodeURIComponent(bodyEl.value)}`, {method:'POST'})).json();
+  if (r.error){ setStat('name: ' + r.error); return; }
+  document.getElementById('clipname').value = '';
+  await loadClipList();
+  clipSel.value = did;                       // keep the auditioned clip selected
+  setStat(name ? `named ${did}: ${name}` : `cleared name of ${did}`);
+};
+
+// ---- LotroCompanion saved outfits -----------------------------------------
+// The player's own outfits, read from ~/.lotrocompanion. Outfits have no name
+// in that format, only an index, so the list is labelled by chest piece.
+const toonRow = document.getElementById('toonrow'),
+      toonSel = document.getElementById('toonsel'),
+      outfitSel = document.getElementById('outfitsel');
+let toons = [];
+// chargen head/hair style of the loaded character (appearance_extracted.json).
+// Empty = the composer's default style 0, which is what every character used to
+// get regardless of who they actually are.
+let charStyles = {};
+// Real per-character colours (appearance_extracted.json). skin overrides the
+// 4-swatch palette; hair tints the chargen hair mesh.
+let charColors = {};
+// sRGB, NOT linear. three r152+ treats bare Color components as LINEAR, so
+// feeding 0-255 sRGB values straight in renders everything washed out and pale:
+// skin [185,147,110] came out #ddc8af and near-black hair [29,10,2] came out
+// mid-brown. setRGB with SRGBColorSpace does the conversion the hex-string
+// constructor (used by the SKINS palette) has been doing all along.
+const rgb = c => new THREE.Color().setRGB(c[0]/255, c[1]/255, c[2]/255,
+                                          THREE.SRGBColorSpace);
+function fillOutfitSel(){
+  const t = toons.find(x => x.dir === toonSel.value);
+  outfitSel.innerHTML = '<option value="">(pick an outfit)</option>' +
+    (t ? t.outfits.filter(o => o.n).map(o =>
+      `<option value="${o.index}">${o.label}</option>`).join('') : '');
+}
+async function loadToons(){
+  let d;
+  try { d = await (await fetch('/toons')).json(); } catch (e){ return; }
+  toons = (d && d.toons) || [];
+  if (!toons.length) return;                 // no companion data: row stays hidden
+  toonRow.style.display = 'flex';
+  toonSel.innerHTML = toons.map(t =>
+    `<option value="${t.dir}">${t.name}${t.body ? '' : ' ⚠'}</option>`).join('');
+  toonSel.title = toons.map(t => `${t.name}: ${t.cls} ${t.race}/${t.sex}` +
+    (t.body ? ` -> ${t.body}` : ' (no rig for this race)')).join('\n');
+  fillOutfitSel();
+}
+toonSel.onchange = ()=>{
+  const keep = outfitSel.value;              // stay on the same outfit number
+  fillOutfitSel();
+  // Re-render for the newly selected character: their body, their chargen
+  // head/hair style and their colours all change, so the picture must follow
+  // the toon selector and not just the outfit selector.
+  if (keep && [...outfitSel.options].some(o => o.value === keep)){
+    outfitSel.value = keep;
+    outfitSel.onchange();
+  } else {
+    const t = toons.find(x => x.dir === toonSel.value);
+    charStyles = (t && t.styles) || {};
+    charColors = (t && t.colors) || {};
+    if (t && t.body && BODIES.includes(t.body)) bodyEl.value = t.body;
+    loadClipList(); composeFace();
+    for (const s2 of SLOTS) if (state[s2].item) composeSlot(s2);
+    updateHash();
+  }
+};
+outfitSel.onchange = async ()=>{
+  if (!outfitSel.value) return;
+  opBegin('loading outfit…');
+  try {
+    const r = await (await fetch(
+      `/outfit?toon=${encodeURIComponent(toonSel.value)}&index=${outfitSel.value}`)).json();
+    if (r.error){ setErr('outfit: ' + r.error); return; }
+    // The character's own race/sex when we have a rig for it; otherwise keep
+    // whatever body is selected and say so, rather than silently rendering the
+    // outfit on the wrong body.
+    if (r.body && BODIES.includes(r.body)) bodyEl.value = r.body;
+    const toon = toons.find(t => t.dir === toonSel.value);
+    charStyles = (toon && toon.styles) || {};
+    charColors = (toon && toon.colors) || {};
+    for (const s of SLOTS){                  // a loaded outfit REPLACES the look
+      state[s].item = null; state[s].dye = ''; state[s].overrides = {};
+      state[s].visible = true;
+      setItemLabel(s, ''); clearMesh(s);
+      const el = document.getElementById('dye_' + s); if (el) el.value = '';
+      const cb = document.getElementById('vis_' + s); if (cb) cb.checked = true;
+    }
+    for (const [s, v] of Object.entries(r.slots)){
+      state[s].item = {did: v.did, name: v.name};
+      state[s].dye = v.dye || '';
+      state[s].visible = v.visible !== false;   // LotroCompanion 'visible' flag
+      setItemLabel(s, v.name);
+      const el = document.getElementById('dye_' + s); if (el) el.value = state[s].dye;
+      const cb = document.getElementById('vis_' + s); if (cb) cb.checked = state[s].visible;
+    }
+    loadClipList(); composeFace();
+    // await the composes: each one calls setStat when it lands, so a summary
+    // written before them is immediately overwritten by "Back: Cloak of …"
+    await Promise.all(SLOTS.filter(s => state[s].item).map(s => composeSlot(s)));
+    updateHash();
+    const notes = [];
+    if (!r.body) notes.push('no rig for this race — shown on ' + bodyEl.value);
+    if (r.missing.length) notes.push(r.missing.length + ' item(s) not in catalog');
+    if (r.skipped.length) notes.push(r.skipped.length + ' weapon/aura slot(s) skipped');
+    setStat(`outfit: ${Object.keys(r.slots).length} pieces` +
+            (notes.length ? ' — ' + notes.join('; ') : ''));
+  } catch (e){ setErr('outfit: ' + e); }
+  finally { opEnd(); }
+};
+loadToons();
+
+// ---- outfit state in the URL hash -----------------------------------------
+// The whole look (body, skin, per-slot item + dye, chosen clip) lives in
+// location.hash, so a reload restores it and the URL is shareable. Written on
+// every change; replaceState avoids stuffing the back button with one entry per
+// dye tweak. hashRestoring suppresses writes while we are applying a hash.
+let hashRestoring = false;
+function updateHash(){
+  if (hashRestoring) return;
+  const p = new URLSearchParams();
+  p.set('body', bodyEl.value);
+  p.set('skin', skinEl.value);
+  if (clipSel.value) p.set('clip', clipSel.value);
+  for (const s of SLOTS){
+    const st = state[s];
+    if (st && st.item)
+      p.set(s, (st.visible ? '' : '!') + st.item.did.toString(16) +
+               (st.dye ? ':' + st.dye : ''));
+  }
+  history.replaceState(null, '', '#' + p.toString());
+}
+async function applyHash(){
+  const h = location.hash.replace(/^#/, '');
+  if (!h) return false;
+  const p = new URLSearchParams(h);
+  hashRestoring = true;
+  try {
+    if (p.get('body') && BODIES.includes(p.get('body'))) bodyEl.value = p.get('body');
+    if (p.get('skin') && SKINS[p.get('skin')]) skinEl.value = p.get('skin');
+    await loadClipList();
+    const clip = p.get('clip');
+    if (clip && clipList.some(c => String(c.did) === clip)) clipSel.value = clip;
+    // fetch the catalog rows in parallel, then compose the slots
+    const jobs = SLOTS.filter(s => p.get(s)).map(async s => {
+      let [hex, dye] = p.get(s).split(':');
+      const vis = !hex.startsWith('!');        // '!' prefix = slot hidden
+      if (!vis) hex = hex.slice(1);
+      const r = await (await fetch('/item?did=0x' + hex)).json();
+      if (r.error) { setErr(`${s}: unknown item 0x${hex}`); return; }
+      state[s].item = r;
+      state[s].dye = dye || '';
+      state[s].visible = vis;
+      setItemLabel(s, r.name);
+      const el = document.getElementById('dye_' + s);
+      if (el) el.value = state[s].dye;
+      const cb = document.getElementById('vis_' + s);
+      if (cb) cb.checked = vis;
+    });
+    await Promise.all(jobs);
+  } finally { hashRestoring = false; }
+  composeFace();
+  for (const s of SLOTS) if (state[s].item) composeSlot(s);
+  return true;
+}
+addEventListener('hashchange', ()=>{ if (!hashRestoring) applyHash(); });
+
+// dye dropdowns
+fetch('/dyes').then(r=>r.json()).then(t=>{
+  dyeNames = Object.keys(t).sort();
+  for (const slot of SLOTS){
+    const el = document.getElementById('dye_'+slot);
+    el.innerHTML = '<option value="">dye</option>' + dyeNames.map(n=>`<option>${n}</option>`).join('');
+  }
+  dyeSet.innerHTML = '<option value="">dye all</option>' + dyeNames.map(n=>`<option>${n}</option>`).join('');
+});
+
+document.getElementById("fit").onclick = ()=> fitScene();
+document.getElementById("animate").onchange = ()=>{
+  animPaused = false;
+  if (!animOn()) clearRig();
+  composeFace();                             // face follows the active path
+  for (const s of SLOTS) composeSlot(s);     // rebuild meshes on the other path
+};
+document.getElementById("face").onchange = ()=> composeFace();
+// Boot: a URL hash fully describes the look, so it replaces the default boot.
+(async ()=>{ if (!await applyHash()){ await loadClipList(); composeFace(); } })();
+let lastTick = performance.now();
+// Stop entirely while the tab is hidden. requestAnimationFrame is already
+// throttled in background tabs, but not reliably stopped, and the loop was
+// still posing + rendering a character nobody is looking at. Resetting lastTick
+// on the way back matters as much as the pause: without it the first frame
+// after refocusing sees a dt of however long the tab was away and jumps the
+// animation to an arbitrary phase.
+let hidden = document.hidden;
+document.addEventListener('visibilitychange', ()=>{
+  hidden = document.hidden;
+  if (!hidden){ lastTick = performance.now(); dirty = true; loop(); }
+});
+function loop(){
+  if (hidden) return;                        // no rAF queued: the loop is idle
+  requestAnimationFrame(loop);
+  const now = performance.now(), dt = (now - lastTick)/1000; lastTick = now;
+  if (rig.clip && animOn() && !animPaused){
+    animTime = (animTime + dt) % rig.clip.duration;
+    applyPose(animTime);
+  }
+  renderer.render(scene, camera);            // render every frame while a rig may move
+}
+loop();
+window.__dbg = {camera, controls, state, SLOTS, THREE, renderer, scene, rig, face,
+                composeSlot, composeFace, applyChosenClip, fitScene};
+addEventListener('resize', ()=>{ camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); dirty = true; });
+</script>
+</body>
+</html>

@@ -71,10 +71,60 @@ def item_row(props_did, props):
         clothing_color=props.get("Item_ClothingColor"),
         bodies=bodies)
 
+GARMENT_TAG = 0x1000000C
+_STUB_BYTES = 2000
+
+def _record_presence(app_did):
+    """{appearanceKey: renderable} for one 0x20 worn-appearance record.
+    renderable = the entry's 0x1000000C garment part (or, when no part carries
+    that tag, any part) resolves to a shipped mesh > 2 KB. The viewers filter
+    search results on these flags, so the sweep bakes them in per body."""
+    import wearable2
+    try:
+        rec = wearable2.parse_record(config.general().read_content(app_did))
+    except Exception:
+        return {}
+    out = {}
+    for e in wearable2.entries(rec):
+        parts = e["blocks"][0]["parts"] if e["blocks"] else []
+        gar = [p for p in parts if p["tag"] == GARMENT_TAG]
+        ok = False
+        for p in (gar if gar else parts):
+            f = config.mesh_chain().find_file(p["mesh"])
+            if f and f[2] > _STUB_BYTES:
+                ok = True
+                break
+        out[e["key"]] = ok
+    return out
+
+
+def augment_presence(rows):
+    """Add bodies[i]["present"] to every catalog row (0x20 records parsed
+    once each, cached). Returns the number of items with >= 1 renderable
+    body."""
+    cache = {}
+    n_render = 0
+    for i, r in enumerate(rows):
+        any_ok = False
+        for b in r["bodies"]:
+            app = b["app"]
+            if app not in cache:
+                cache[app] = _record_presence(app)
+            b["present"] = bool(cache[app].get(b["key"], False))
+            any_ok = any_ok or b["present"]
+        if any_ok:
+            n_render += 1
+        if i % 5000 == 0:
+            print("  presence %d/%d (records cached: %d)"
+                  % (i, len(rows), len(cache)), flush=True)
+    return n_render
+
+
 def sweep(out_path=None):
     """Walk every 0x79 property record and write one JSON line per wearable
     item to `out_path` (default: items_catalog.jsonl in the output root, where
-    app.py's /search route expects it)."""
+    app.py's /search route expects it), then add the per-body garment-presence
+    flags the search/set routes filter on."""
     if out_path is None:
         out_path = os.path.join(config.out_dir(), "items_catalog.jsonl")
     gl = _gl()
@@ -82,21 +132,26 @@ def sweep(out_path=None):
     dids = []
     gl.walk(lambda e: dids.append(e[0]) if (e[0] >> 24) == 0x79 else None)
     print("0x79 property records:", len(dids))
-    n_ok = n_wear = n_fail = 0
+    n_ok = n_fail = 0
+    rows = []
+    for i, did in enumerate(dids):
+        try:
+            d, props = propset.parse_properties(gl.read_content(did), reg)
+            n_ok += 1
+            row = item_row(did, props)
+            if row:
+                rows.append(row)
+        except Exception:
+            n_fail += 1
+        if i % 20000 == 0:
+            print("  %d/%d  parsed=%d wearable=%d fail=%d"
+                  % (i, len(dids), n_ok, len(rows), n_fail), flush=True)
+    n_render = augment_presence(rows)
     with open(out_path, "w") as f:
-        for i, did in enumerate(dids):
-            try:
-                d, props = propset.parse_properties(gl.read_content(did), reg)
-                n_ok += 1
-                row = item_row(did, props)
-                if row:
-                    f.write(json.dumps(row) + "\n")
-                    n_wear += 1
-            except Exception:
-                n_fail += 1
-            if i % 20000 == 0:
-                print("  %d/%d  parsed=%d wearable=%d fail=%d" % (i, len(dids), n_ok, n_wear, n_fail), flush=True)
-    print("DONE parsed=%d wearable=%d fail=%d -> %s" % (n_ok, n_wear, n_fail, out_path))
+        for r in rows:
+            f.write(json.dumps(r) + "\n")
+    print("DONE parsed=%d wearable=%d fail=%d renderable=%d -> %s"
+          % (n_ok, len(rows), n_fail, n_render, out_path))
 
 if __name__ == "__main__":
     import argparse

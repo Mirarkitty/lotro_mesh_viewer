@@ -7,9 +7,11 @@
 `items_catalog.py` sweeps **every** item property record in the game data
 into a single searchable file, `items_catalog.jsonl` — one JSON line per
 wearable item. This is what powers [viewer.md](viewer.md)'s `/search` route
-(the item-name search box in `index.html`): rather than resolving an item's
+(the item-name search box in `index.html`) and, more extensively,
+[outfit_app.py](outfit_app.md)'s `/search`, `/sets`, and `/setmates` routes
+(via [api_common.py](api_common.md)): rather than resolving an item's
 name/class/appearance on every search keystroke, the catalog is built once
-(offline, takes minutes) and the viewer just filters/scores the pre-built
+(offline, takes minutes) and both servers just filter/score the pre-built
 rows in memory.
 
 It sits at the same pipeline stage as [propset.py](propset.md) — item →
@@ -48,7 +50,9 @@ python3 items_catalog.py --item 0x7000DA5B      # single-item test, prints the r
 |---|---|---|
 | `resolve_name` | `resolve_name(si)` | resolved display-name string for a `STRING_INFO` value `{token, dataId}`, or `None`/the input unchanged if not a dict |
 | `item_row` | `item_row(props_did, props)` | one catalog row dict, or `None` if the item has no `Item_WornAppearanceMapList` (i.e. isn't a wearable) |
-| `sweep` | `sweep(out_path=None)` | walks every `0x79` property record in `client_gamelogic.dat`, writes one JSONL row per wearable item |
+| `_record_presence` | `_record_presence(app_did)` | `{appearanceKey: renderable bool}` for one `0x20` worn-appearance record |
+| `augment_presence` | `augment_presence(rows)` | adds `bodies[i]["present"]` to every catalog row in place; returns the count of items with ≥1 renderable body |
+| `sweep` | `sweep(out_path=None)` | walks every `0x79` property record in `client_gamelogic.dat`, writes one JSONL row per wearable item, then runs `augment_presence` over the whole set before writing |
 
 `item_row`'s output shape:
 
@@ -56,6 +60,9 @@ python3 items_catalog.py --item 0x7000DA5B      # single-item test, prints the r
 {did, name, item_class, quality, level, slot, equip_cat, material_type,
  icon, clothing_color, bodies: [{species, sex, key, app}]}
 ```
+
+`sweep`'s final JSONL row shape adds the presence flag `augment_presence`
+bakes in (see below): `bodies: [{species, sex, key, app, present}, ...]`.
 
 `did` here is the recovered **item** DID (properties DID minus
 `propset.DBPROPERTIES_OFFSET`), matching the DID format the rest of the
@@ -74,6 +81,37 @@ writes a JSONL row only if `item_row` finds `Item_WornAppearanceMapList`
 (non-wearable items — quest items, currency, etc. — are dropped). Progress
 is logged every 20000 records; parse failures are counted but don't abort
 the sweep.
+
+### Presence augmentation (`augment_presence`)
+
+After the sweep collects every wearable item's raw row, `sweep()` runs one
+more pass — `augment_presence(rows)` — before writing the JSONL file: for
+every `bodies[i]` entry on every row, it parses that body's `0x20`
+worn-appearance record (`app_did`, cached per-record so the same 0x20 file
+backing many items is only parsed once — `_record_presence`) and decides
+whether that specific `(app, key)` combination is actually renderable, the
+same rule [selector.py](selector.md)/[compose.py](compose.md)/
+[viewer.md](viewer.md)'s `/bodies` route use elsewhere: look at the entry's
+`0x1000000C` garment-tagged part (`GARMENT_TAG`, or any part if none carries
+that tag), resolve its mesh through the chain, and require it to be a real
+mesh (`> 2000` bytes, `_STUB_BYTES`) rather than a placeholder stub. The
+result is written back onto the row as `bodies[i]["present"]`.
+
+This is **required**, not optional decoration: [api_common.py](api_common.md)'s
+`search`, `setmates`, and `sets_index` all filter on
+`any(b.get("present") for b in r["bodies"])` — an item catalog built without
+this pass (e.g. by calling `item_row`/writing JSONL directly, bypassing
+`sweep`) will look empty to `/search` and `/sets` in
+[outfit_app.py](outfit_app.md), even though the raw rows are present, because
+every `present` key would be missing (falsy) rather than `False` or `True`.
+
+This pass is also most of `sweep()`'s runtime: it parses one `0x20` record
+per **distinct** worn-appearance DID across the whole catalog (not per row —
+the per-`app_did` cache means a body shared by many items is only decoded
+once), which is a substantial fraction of a multi-minute sweep on top of the
+`0x79` property-record walk. Progress is logged every 5000 rows
+(`presence %d/%d (records cached: %d)`), separately from the sweep's own
+20000-row progress log.
 
 ### Name resolution (`resolve_name`)
 
@@ -111,12 +149,22 @@ printable characters (ordinal 31–0x3000) or a small allowed punctuation set
   inspect which items were skipped.
 - **`sweep()` is meant for detached/background use** given the runtime
   (~minutes over the whole `client_gamelogic.dat` archive) — the module
-  docstring calls this out explicitly.
+  docstring calls this out explicitly, and the presence-augmentation pass
+  (see above) adds a second, comparably-sized pass on top of the property
+  sweep, so a full rebuild takes noticeably longer than the sweep alone.
+- **Skipping `augment_presence` breaks search silently** — a hand-rolled
+  catalog file that writes `item_row`'s output directly (without going
+  through `sweep`) has no `present` key on any `bodies` entry, which reads
+  as falsy everywhere [api_common.py](api_common.md) checks it; every
+  `/search`/`/sets`/`/setmates` result would come back empty with no error,
+  not an obviously "presence missing" symptom.
 
 ## See also
 
 - [propset.py](propset.md) — the PropertiesSet parser this module drives at scale.
 - [selector.py](selector.md) — resolves one item's exact worn-appearance binding (this module's `bodies` list is the same shape, minus per-body renderability).
-- [viewer.md](viewer.md) — the `/search` and `/bodies` routes that consume `items_catalog.jsonl`.
+- [wearable2.py](wearable2.md) — the `0x20` record parser `_record_presence` uses.
+- [viewer.md](viewer.md) — the `/search` and `/bodies` routes that consume `items_catalog.jsonl` (single-item viewer).
+- [api_common.py](api_common.md) — the outfit composer's `search`/`setmates`/`sets_index`, which all require the `present` flag this module bakes in.
 - [../wardrobe.md](../wardrobe.md), [../properties.md](../properties.md) — format background.
 - [INDEX.md](INDEX.md) — full script index.

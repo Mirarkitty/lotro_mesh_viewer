@@ -332,6 +332,20 @@ rig's walk/run family has been directly confirmed by human eye; other
 rigs' canonical walk/run clips are extended from the same method without
 independent visual confirmation yet.
 
+**The classifier outputs ship as prebuilt data; the classifiers themselves
+do not.** The results of this method (and the related idle/stance/foot-
+posture/motion-duplicate classifications) are shipped as git-tracked JSON
+files — `gait_flags.json`, `idle_flags.json`, `stance_flags.json`,
+`foot_flags.json`, `dup_groups_*.json`, plus the human clip-naming file
+`clip_names.json` — and consumed by
+[scripts/api_common.md](scripts/api_common.md)'s `clips_for_body` to power
+the outfit composer's clip picker (motion filters, riding hide/only,
+motion-duplicate folding). The offline scan scripts that *produce* these
+files (`gait_flags_scan.py`, `idle_scan.py`, `stance_scan.py`,
+`foot_scan.py`, `dup_scan.py`) are **not** in this repository — the data is
+regenerable in principle, using the method described above, but the
+regeneration tooling itself isn't shipped.
+
 ## Emotes and animation-state names
 
 Typed emote commands (e.g. a `/handstand`-style command) are defined as
@@ -401,4 +415,6 @@ relying on this name table at all.
 - [wardrobe.md](wardrobe.md) — mesh *selection*, a separate layer from animation
 - [hair-face.md](hair-face.md) — skinning a composed head/hair/beard set
 - [dat-format.md](dat-format.md) — the `0x04`/`0x05` DID type map
+- [scripts/api_common.md](scripts/api_common.md) — `clips_for_body`, which consumes the shipped `gait_flags.json`/`idle_flags.json`/`stance_flags.json`/`foot_flags.json`/`dup_groups_*.json`/`clip_names.json` classifier-output files this page's methods produced
+- [outfit-composer.md](outfit-composer.md) — the `anim`/`motion`/riding-filter controls built on this classification
 - [limitations.md](limitations.md) — the overclaiming failure mode, and rigging's specific open gaps

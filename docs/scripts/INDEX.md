@@ -22,10 +22,13 @@ implement, see the parent [docs/](../) directory
 | `selector.py` | Item → per-body garment mesh/material selector + CLI | [selector.md](selector.md) |
 | `wearable2.py` | Strict sequential 0x20 worn-appearance record parser + CLI | [wearable2.md](wearable2.md) |
 | `compose.py` | Composes one wearable entry (item × body) into a textured viewer JSON + CLI | [compose.md](compose.md) |
-| `items_catalog.py` | Sweeps all items into a searchable `items_catalog.jsonl` + CLI | [items_catalog.md](items_catalog.md) |
+| `items_catalog.py` | Sweeps all items into a searchable `items_catalog.jsonl`, then bakes per-body presence flags + CLI | [items_catalog.md](items_catalog.md) |
 | `export_skinned.py` | Skinned mesh + skeleton + clip export for the animation viewer + CLI | [export_skinned.md](export_skinned.md) |
 | `havok_anim.py` | Havok binary tagfile parser + spline-compressed animation decompressor + CLI | [havok_anim.md](havok_anim.md) |
-| `app.py`, `index.html`, `anim.html` | The local three.js viewer server (Flask, stdlib fallback) and its two front-ends | [viewer.md](viewer.md) (`app.md` links here) |
+| `app.py`, `index.html`, `anim.html` | The local three.js viewer server (Flask, stdlib fallback) and its two front-ends — single-item subset | [viewer.md](viewer.md) (`app.md` links here) |
+| `charparts.py` | Chargen head/hair/beard (APR) compositor + CLI | [charparts.md](charparts.md) |
+| `api_common.py` | Framework-free backend shared by both servers: catalog/search/sets, clip listing, LotroCompanion import, composition, dye/texture baking | [api_common.md](api_common.md) |
+| `outfit_app.py`, `outfit.html` | The multi-slot outfit composer server + front-end (Flask, port 8723) | [outfit_app.md](outfit_app.md) |
 | `screenshot.py` | Playwright headless visual-verification screenshots | [screenshot.md](screenshot.md) |
 
 ## Reading order
@@ -48,4 +51,9 @@ For someone new to the codebase, roughly following the pipeline is easiest:
 9. [items_catalog.py](items_catalog.md) — building the search index over
    every item.
 10. [viewer.md](viewer.md) / [screenshot.py](screenshot.md) — rendering and
-    verifying the result.
+    verifying the result (single-item subset).
+11. [charparts.py](charparts.md) — chargen head/hair/beard, the last piece
+    of geometry needed for a full avatar.
+12. [api_common.py](api_common.md) / [outfit_app.py](outfit_app.md) — the
+    full multi-slot outfit composer that ties every previous stage together
+    (see also [../outfit-composer.md](../outfit-composer.md)).

@@ -1,0 +1,1779 @@
+{
+  "83886298": {
+    "name": "fire arrow from bow",
+    "rig": "pc89"
+  },
+  "83886325": {
+    "name": "sneak to stand transition?",
+    "rig": "pc89"
+  },
+  "83889742": {
+    "name": "defeat?",
+    "rig": "pc89"
+  },
+  "83889798": {
+    "name": "roar",
+    "rig": "pc89"
+  },
+  "83889815": {
+    "name": "punch with right hand",
+    "rig": "pc89"
+  },
+  "83889823": {
+    "name": "taking out the bow",
+    "rig": "pc89"
+  },
+  "83891263": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891265": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891302": {
+    "name": "standing, 2h sword straight up? combat mode",
+    "rig": "pc89"
+  },
+  "83891319": {
+    "name": "auto:run_back",
+    "rig": "pc89"
+  },
+  "83891430": {
+    "name": "\"thank\"",
+    "rig": "pc89"
+  },
+  "83891449": {
+    "name": "dance step",
+    "rig": "pc89"
+  },
+  "83891463": {
+    "name": "\"faint\"",
+    "rig": "pc89"
+  },
+  "83891577": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891579": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891581": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891584": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891585": {
+    "name": "defeat?",
+    "rig": "pc89"
+  },
+  "83891606": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891610": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891616": {
+    "name": "walking carrying right hand",
+    "rig": "pc89"
+  },
+  "83891640": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891642": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891643": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891661": {
+    "name": "auto:run_strafe_l",
+    "rig": "pc89"
+  },
+  "83891663": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83891665": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891666": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891671": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83891770": {
+    "name": "\"cheer\"",
+    "rig": "pc89"
+  },
+  "83891856": {
+    "name": "firing arrow",
+    "rig": "pc89"
+  },
+  "83891879": {
+    "name": "resurrection? defeat pose",
+    "rig": "pc89"
+  },
+  "83891880": {
+    "name": "resurrection? defeat pose",
+    "rig": "pc89"
+  },
+  "83891881": {
+    "name": "defeat 2h",
+    "rig": "pc89"
+  },
+  "83891883": {
+    "name": "defeat 2h",
+    "rig": "pc89"
+  },
+  "83891884": {
+    "name": "defeat 2h",
+    "rig": "pc89"
+  },
+  "83891972": {
+    "name": "track (start)",
+    "rig": "pc89"
+  },
+  "83892075": {
+    "name": "\"pick\"?",
+    "rig": "pc89"
+  },
+  "83892097": {
+    "name": "sit",
+    "rig": "pc89"
+  },
+  "83892104": {
+    "name": "thank",
+    "rig": "pc89"
+  },
+  "83892126": {
+    "name": "dance step",
+    "rig": "pc89"
+  },
+  "83892140": {
+    "name": "faint",
+    "rig": "pc89"
+  },
+  "83892150": {
+    "name": "walking carrying in front (both hands)",
+    "rig": "pc89"
+  },
+  "83892159": {
+    "name": "standing up after doing something on the floor",
+    "rig": "pc89"
+  },
+  "83892162": {
+    "name": "nod",
+    "rig": "pc89"
+  },
+  "83892241": {
+    "name": "auto:run_strafe_l",
+    "rig": "pc89"
+  },
+  "83892243": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83892245": {
+    "name": "auto:run_strafe_l",
+    "rig": "pc89"
+  },
+  "83892246": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83892251": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892278": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892280": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892282": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892284": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892340": {
+    "name": "swim backwards",
+    "rig": "pc89"
+  },
+  "83892442": {
+    "name": "vom tag (block)",
+    "rig": "pc89"
+  },
+  "83892875": {
+    "name": "walking half strafe good default",
+    "rig": "pc89"
+  },
+  "83892881": {
+    "name": "swim backwards",
+    "rig": "pc89"
+  },
+  "83892883": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892884": {
+    "name": "swim forward",
+    "rig": "pc89"
+  },
+  "83892902": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892904": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83892906": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892907": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892908": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892909": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892912": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892929": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892941": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892943": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892945": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892948": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892969": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83892973": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83893505": {
+    "name": "run_a",
+    "rig": "dwm",
+    "tags": [
+      "loco"
+    ]
+  },
+  "83893507": {
+    "name": "run_b",
+    "rig": "dwm",
+    "tags": [
+      "loco"
+    ]
+  },
+  "83893510": {
+    "name": "run_c",
+    "rig": "dwm",
+    "tags": [
+      "loco"
+    ]
+  },
+  "83893512": {
+    "name": "run_d",
+    "rig": "dwm",
+    "tags": [
+      "loco"
+    ]
+  },
+  "83893514": {
+    "name": "run_e",
+    "rig": "dwm",
+    "tags": [
+      "loco"
+    ]
+  },
+  "83893540": {
+    "name": "jog",
+    "rig": "dwm",
+    "tags": [
+      "loco"
+    ]
+  },
+  "83893544": {
+    "name": "walk_a",
+    "rig": "dwm",
+    "tags": [
+      "loco",
+      "walk-family"
+    ]
+  },
+  "83893560": {
+    "name": "walk_b",
+    "rig": "dwm",
+    "tags": [
+      "loco",
+      "walk-family"
+    ]
+  },
+  "83893561": {
+    "name": "walk_c",
+    "rig": "dwm",
+    "tags": [
+      "loco",
+      "walk-family"
+    ]
+  },
+  "83893562": {
+    "name": "walk_d",
+    "rig": "dwm",
+    "tags": [
+      "loco",
+      "walk-family"
+    ]
+  },
+  "83893618": {
+    "name": "walk backward, right arm in front",
+    "rig": "dwm"
+  },
+  "83893624": {
+    "name": "strife left",
+    "rig": "dwm"
+  },
+  "83893647": {
+    "name": "shield bash",
+    "rig": "dwm",
+    "tags": [
+      "emote",
+      "not-loco"
+    ]
+  },
+  "83895384": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83895385": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83895538": {
+    "name": "standing and talking",
+    "rig": "pc89"
+  },
+  "83895718": {
+    "name": "standing?",
+    "rig": "pc89"
+  },
+  "83897216": {
+    "name": "standing",
+    "rig": "pc89"
+  },
+  "83899072": {
+    "name": "whistle for horse",
+    "rig": "pc89"
+  },
+  "83899084": {
+    "name": "\"look\"",
+    "rig": "pc89"
+  },
+  "83899216": {
+    "name": "fencing?",
+    "rig": "dwm",
+    "tags": [
+      "emote",
+      "not-loco"
+    ]
+  },
+  "83899562": {
+    "name": "emote_feet_parked_c",
+    "rig": "dwm",
+    "tags": [
+      "emote",
+      "not-loco"
+    ]
+  },
+  "83901258": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83903474": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83903522": {
+    "name": "run_fast",
+    "rig": "dwm",
+    "tags": [
+      "loco"
+    ]
+  },
+  "83905701": {
+    "name": "uppercut?",
+    "rig": "dwm",
+    "tags": [
+      "emote",
+      "not-loco"
+    ]
+  },
+  "83905842": {
+    "name": "rock paper scissors - rock",
+    "rig": "pc89"
+  },
+  "83905847": {
+    "name": "rock scissor paper - paper",
+    "rig": "pc89"
+  },
+  "83905908": {
+    "name": "jumping jacks",
+    "rig": "pc89"
+  },
+  "83905910": {
+    "name": "sigh and sweat",
+    "rig": "pc89"
+  },
+  "83905912": {
+    "name": "auto:run_strafe_l",
+    "rig": "pc89"
+  },
+  "83905914": {
+    "name": "sigh and sweat",
+    "rig": "pc89"
+  },
+  "83906707": {
+    "name": "jazz hands",
+    "rig": "pc89"
+  },
+  "83906777": {
+    "name": "auto:walk_fwd",
+    "rig": "pc89"
+  },
+  "83907734": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907735": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907736": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907839": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907872": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907873": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907875": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907876": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907878": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907879": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907880": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907882": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907883": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907886": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907887": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907888": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907889": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907922": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907938": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907939": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83907947": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908012": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908013": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908014": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908015": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908016": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908017": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908018": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908020": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908022": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908023": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908024": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908025": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908026": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908027": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908029": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908030": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908034": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908035": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908036": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908037": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908039": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908042": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908045": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908046": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908050": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908051": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908053": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908064": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908065": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908066": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908067": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908068": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908069": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908370": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908371": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908374": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908452": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908490": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908584": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908630": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908634": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908646": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908660": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908666": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908673": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908674": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908694": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908735": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908736": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908737": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908738": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908739": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908740": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908741": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908742": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908749": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908750": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908751": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908753": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908754": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908756": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908757": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908758": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908759": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908760": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908762": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908763": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908764": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908843": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908844": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908845": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908846": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908947": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908968": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908971": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83908979": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909021": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909043": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909048": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909213": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909220": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909221": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909262": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909265": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909267": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909269": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909278": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909279": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909285": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909310": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909314": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909323": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909331": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909334": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909336": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909339": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909342": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909451": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909453": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909454": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909455": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909457": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909458": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909462": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909581": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909589": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909620": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909624": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909698": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909706": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909734": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909735": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909736": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909737": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909738": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909741": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909742": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909743": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909744": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909751": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909752": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909826": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909827": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909934": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909936": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909943": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909967": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909981": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909987": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909989": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83909995": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83910016": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83910025": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83910029": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83910045": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83910681": {
+    "name": "strafe fast (left?)",
+    "rig": "pc89"
+  },
+  "83911253": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83911255": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83911373": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83911377": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83912224": {
+    "name": "fast fire arrows",
+    "rig": "pc89"
+  },
+  "83912776": {
+    "name": "swim",
+    "rig": "pc89"
+  },
+  "83912867": {
+    "name": "standing and breathing",
+    "rig": "pc89"
+  },
+  "83913241": {
+    "name": "taking out and inspecting something",
+    "rig": "pc89"
+  },
+  "83913833": {
+    "name": "walking (?) backwards",
+    "rig": "pc89"
+  },
+  "83913834": {
+    "name": "auto:run_strafe_l",
+    "rig": "pc89"
+  },
+  "83913835": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83913836": {
+    "name": "auto:run_strafe_l",
+    "rig": "pc89"
+  },
+  "83913838": {
+    "name": "auto:run_back",
+    "rig": "pc89"
+  },
+  "83913839": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83913840": {
+    "name": "auto:run_strafe_l",
+    "rig": "pc89"
+  },
+  "83913841": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83913842": {
+    "name": "auto:run_back",
+    "rig": "pc89"
+  },
+  "83913843": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83913844": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83913852": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83913853": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83913857": {
+    "name": "auto:run_strafe_l",
+    "rig": "pc89"
+  },
+  "83913858": {
+    "name": "auto:run_strafe_l",
+    "rig": "pc89"
+  },
+  "83913888": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83913895": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83913901": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83913903": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83913911": {
+    "name": "auto:run_strafe_r",
+    "rig": "pc89"
+  },
+  "83913913": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83915283": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83916078": {
+    "name": "roll",
+    "rig": "pc89"
+  },
+  "83916080": {
+    "name": "roll forard (mae ukemi)",
+    "rig": "pc89"
+  },
+  "83916269": {
+    "name": "orating?",
+    "rig": "pc89"
+  },
+  "83916272": {
+    "name": "other orating",
+    "rig": "pc89"
+  },
+  "83916289": {
+    "name": "laughing waving arms?",
+    "rig": "pc89"
+  },
+  "83920994": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921001": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921003": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921020": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921027": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921029": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921040": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921041": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921046": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921051": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921054": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921060": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921069": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921073": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921077": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921079": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921080": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921083": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921090": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921100": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921106": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921108": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921113": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921123": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921132": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921137": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921158": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921163": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921168": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921171": {
+    "name": "kick",
+    "rig": "pc89"
+  },
+  "83921172": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921195": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921202": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921217": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921225": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921227": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921235": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921244": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921258": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921263": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921306": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83921311": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83921347": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921362": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921388": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921389": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921397": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921410": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921422": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921426": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921435": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921436": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921443": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921464": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921471": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921474": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921477": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921485": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921488": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921491": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921502": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921695": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921742": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921767": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921776": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921782": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921831": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921836": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921842": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921845": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921848": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921852": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921854": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921856": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921861": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921865": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921871": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921880": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921882": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921902": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83921973": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83922026": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83922054": {
+    "name": "channeling?",
+    "rig": "pc89"
+  },
+  "83922097": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83922101": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83922114": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83922140": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83922160": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83922170": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83922197": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83922212": {
+    "name": "riding salute",
+    "rig": "pc89"
+  },
+  "83923065": {
+    "name": "\"angry\"",
+    "rig": "pc89"
+  },
+  "83923072": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923089": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923091": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923094": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923097": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923102": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923114": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923115": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923128": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923129": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923130": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923131": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923133": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923137": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923148": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923407": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923411": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923417": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923418": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923421": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923423": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923435": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923437": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923439": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83923861": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83923863": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83923879": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83923931": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83925200": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83925208": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83925214": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83925222": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83925292": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83925297": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83925479": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83925501": {
+    "name": "auto:riding",
+    "rig": "pc89"
+  },
+  "83925659": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83925660": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  },
+  "83925672": {
+    "name": "auto:run_fwd",
+    "rig": "pc89"
+  }
+}

@@ -5,13 +5,17 @@ this repository — one page that exercises every solved subsystem at once:
 item resolution, wardrobe binding, mesh decode, textures, shader-driven
 rendering, dyes, hair/face, skeleton and animation.
 
-> **Status**: the composer server itself is part of the development tree and
-> is **not yet included in this repository** (it still carries
-> local-environment assumptions). Everything it does is built on the modules
-> that ARE here — the walkthrough below tells you which module implements
-> each control, so the released code is the reference for all of it. The
-> repo's own [viewer](scripts/viewer.md) (`app.py`) covers the single-item
-> subset: search, per-body compose, dye preview.
+It is included in this repository: run it with
+
+```bash
+python3 items_catalog.py     # once: the catalog powers all search
+python3 outfit_app.py        # -> http://127.0.0.1:8723/
+```
+
+(`outfit_app.py` + `outfit.html`, backend in
+[api_common.py](scripts/api_common.md) and
+[charparts.py](scripts/charparts.md); the repo's simpler
+[viewer](scripts/viewer.md) (`app.py`) covers the single-item subset.)
 
 ![The composer with a saved outfit loaded](img/outfit-loader.png)
 

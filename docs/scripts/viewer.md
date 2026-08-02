@@ -16,6 +16,17 @@ available — a small set of on-demand API routes that call directly into
 search for an item by name and see it rendered without running any CLI tool
 by hand.
 
+**`app.py` is the single-item subset**: one item, on one body, at a time —
+no multi-slot outfit, no dyes-per-slot, no saved-outfit import, no
+animation-clip picker. For the full multi-slot avatar composer (every
+equipment slot at once, per-slot dyes, LotroCompanion saved-outfit import,
+chargen hair/face, animation playback), see
+[outfit_app.py](outfit_app.md) (backend: [api_common.py](api_common.md),
+[charparts.py](charparts.md)) and the front-end walkthrough at
+[../outfit-composer.md](../outfit-composer.md). Both servers share the same
+data-layer modules and the same `decoded/`/`textures/` disk caches, just on
+different ports (`app.py` 8722, `outfit_app.py` 8723).
+
 ## Running it
 
 ```
@@ -221,4 +232,5 @@ camera to a known angle before capturing.
 - [tex_extract.py](tex_extract.md) — texture extraction underlying `/dyedtex`.
 - [screenshot.py](screenshot.md) — headless automation of this viewer for visual verification.
 - [../dyes.md](../dyes.md) — dye render-math background for `/dyedtex`.
+- [outfit_app.py](outfit_app.md), [../outfit-composer.md](../outfit-composer.md) — the full multi-slot outfit composer built on the same modules.
 - [INDEX.md](INDEX.md) — full script index.
