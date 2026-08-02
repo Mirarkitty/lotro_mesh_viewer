@@ -33,6 +33,7 @@ CLI:  python3 tex_extract.py <texture_did>              extract one 0x41 texture
       python3 tex_extract.py mesh <mesh_did>            per-submesh diffuses
       python3 tex_extract.py appearance <app> <mesh>    wardrobe-entry diffuses
 """
+import threading
 import struct, io, os
 import config
 
@@ -113,7 +114,7 @@ def extract_texture(did):
     im.load()
     out = os.path.join(config.textures_dir(), "0x%08X.png" % did)
     # atomic: /textures/ is served while these are being written (threaded=True)
-    tmp = "%s.%d.tmp" % (out, os.getpid())
+    tmp = "%s.%d.%d.tmp" % (out, os.getpid(), threading.get_ident())
     im.convert("RGBA").save(tmp, format="PNG")
     os.replace(tmp, out)
     return out

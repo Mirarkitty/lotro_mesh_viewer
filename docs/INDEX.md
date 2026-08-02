@@ -6,6 +6,7 @@
 | [dat-format.md](dat-format.md) | The Turbine DAT container: header, B-tree directory, block chains, zlib framing, DID type map |
 | [mesh-format.md](mesh-format.md) | GfxObj geometry decode: vertex layouts, submeshes, indices, coordinate system, validation traps |
 | [textures.md](textures.md) | DXT texture records, the material resolution chain, DDS reconstruction, known traps |
+| [shaders.md](shaders.md) | `0x2B` shader classification: alpha-test cutout vs. tint mask, dyeable, metallic |
 | [properties.md](properties.md) | The PropertiesSet format, the property dictionary, typed decode |
 | [wardrobe.md](wardrobe.md) | Item → worn-appearance record → per-race/sex mesh + material binding; sibling items and sleeve variants |
 | [dyes.md](dyes.md) | The dye system: floatCode model, dyeable-region detection, render math, palette extraction |

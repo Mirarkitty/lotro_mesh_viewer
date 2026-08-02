@@ -30,6 +30,7 @@ this repository.
 | DAT container (header, B-tree directory, block chains, zlib) | Proven |
 | GfxObj mesh decode, static + skinned (one unified format) | Proven, visually validated |
 | DXT texture decode + material → diffuse resolution | Proven |
+| `0x2B` shader classification (alpha cutout vs. tint mask, dyeable, metallic) | Proven, not yet consumed by the viewer — see [shaders](docs/shaders.md) |
 | Item PropertiesSet parse (typed, via the client's property dictionary) | Proven |
 | Item → per-race/sex body → garment mesh + material selector | Proven |
 | Dye system (floatCode model, palette, render math) | Proven |
@@ -91,9 +92,10 @@ dye preview at `/`, and skinned-animation playback at `/anim`.
 
 | ![Composed Exquisite Dress, shaded](docs/img/viewer-shaded.png) | ![The same mesh in wireframe](docs/img/viewer-wire.png) |
 |:--:|:--:|
-| The viewer showing a composed garment (Exquisite Dress on the Dwarf body) | The wireframe toggle — part of the visual-verification loop | Item search
-(`/search`) requires `items_catalog.jsonl` to exist — build it with
-`items_catalog.py` above before using the search box.
+| The viewer showing a composed garment (Exquisite Dress on the Dwarf body) | The wireframe toggle — part of the visual-verification loop |
+
+Item search (`/search`) requires `items_catalog.jsonl` to exist — build it
+with `items_catalog.py` above before using the search box.
 
 For **named item lookup or character/inventory context** (not raw DID
 extraction), see the [LotroCompanion](https://github.com/LotroCompanion)
@@ -110,6 +112,7 @@ needed), which is what the viewer's item search box queries.
 [DAT container](docs/dat-format.md) ·
 [mesh/GfxObj](docs/mesh-format.md) ·
 [textures & materials](docs/textures.md) ·
+[shaders](docs/shaders.md) ·
 [PropertiesSets](docs/properties.md) ·
 [wardrobe/worn appearances](docs/wardrobe.md) ·
 [dyes](docs/dyes.md) ·
@@ -126,6 +129,7 @@ needed), which is what the viewer's item search box queries.
 | [`datfile.py`](datfile.py) | Turbine DAT container reader ([docs](docs/scripts/datfile.md)) |
 | [`mesh_decode.py`](mesh_decode.py) | GfxObj mesh decoder, static + skinned ([docs](docs/scripts/mesh_decode.md)) |
 | [`tex_extract.py`](tex_extract.py) | DXT textures + material→diffuse resolution ([docs](docs/scripts/tex_extract.md)) |
+| [`shaders.py`](shaders.py) | `0x2B` shader classification: alpha-test cutout vs. tint mask, dyeable, metallic ([docs](docs/scripts/shaders.md)) |
 | [`propset.py`](propset.py) | PropertiesSet deserializer ([docs](docs/scripts/propset.md)) |
 | [`selector.py`](selector.py) | item → garment mesh/material selector ([docs](docs/scripts/selector.md)) |
 | [`wearable2.py`](wearable2.py) | strict 0x20 worn-appearance parser ([docs](docs/scripts/wearable2.md)) |

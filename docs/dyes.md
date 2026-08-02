@@ -120,6 +120,33 @@ Dye **items** (as opposed to their color/floatCode data) live in the
 client's public item data, named `"<Color> Dye"`; the item DID resolves
 through the same [PropertiesSet](properties.md) pipeline as any other item.
 
+## A near-opaque case: plated armour barely dyes (measured)
+
+Not every garment carries a strongly bimodal alpha channel. A plated-armour
+hauberk texture (`0x412353E5`) was measured against two known-good dyed
+garments:
+
+| texture | garment | alpha < 128 (dyeable fraction) | alpha mean |
+|---|---|---|---|
+| `0x412353E5` | plated hauberk | 3% | 246.6 |
+| `0x410DD7A5` | a dyed dress | 43% | 164.4 |
+| `0x4119FE68` | a dyed tunic | 36% | 166.1 |
+
+The dress and tunic dye correctly by the `alpha < 128` rule above. The
+plated hauberk has almost nothing below the threshold to tint — a direct,
+sufficient explanation for a plated set appearing not to dye, with no shader
+bug required. Confirmed via [shaders.md](shaders.md): this hauberk's
+surfaces classify as `cloth_dyed`/`cloth_dyed_alt`/`cutout_dyed_alt` —
+opaque or alpha-tested-but-dyeable, **not metallic** — so metal-vs-cloth
+shader routing is not the cause either; the diffuse's own alpha data is
+simply mostly opaque.
+
+Whether that near-empty dye mask is *intended* (this particular armour is
+meant to render largely undyeable) or a *content gap* on this item is not
+resolved from static data alone — see [shaders.md](shaders.md#open) for the
+separate, unverified hypothesis about a specular/gloss map possibly hiding
+in the same high-alpha region.
+
 ## Remaining work
 
 - Extract the 16 missing festival dye RGBs from their individual wiki
@@ -143,4 +170,5 @@ through the same [PropertiesSet](properties.md) pipeline as any other item.
 - [textures.md](textures.md) — the diffuse texture the dye tint is applied to
 - [overview.md](overview.md) — where dyeing fits in the overall pipeline
 - [wardrobe.md](wardrobe.md) — the wardrobe-entry `q`-block dye-variant connection
+- [shaders.md](shaders.md) — shader classification for the near-opaque plated-armour case above, and the open shine/specular hypothesis
 - [limitations.md](limitations.md) — festival-dye gap and remaining picker work

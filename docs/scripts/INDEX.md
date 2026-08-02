@@ -6,9 +6,10 @@ closely-coupled group of files). For the format-level writeups these tools
 implement, see the parent [docs/](../) directory
 ([overview.md](../overview.md), [dat-format.md](../dat-format.md),
 [mesh-format.md](../mesh-format.md), [textures.md](../textures.md),
-[properties.md](../properties.md), [wardrobe.md](../wardrobe.md),
-[dyes.md](../dyes.md), [animation.md](../animation.md),
-[hair-face.md](../hair-face.md), [limitations.md](../limitations.md)).
+[shaders.md](../shaders.md), [properties.md](../properties.md),
+[wardrobe.md](../wardrobe.md), [dyes.md](../dyes.md),
+[animation.md](../animation.md), [hair-face.md](../hair-face.md),
+[limitations.md](../limitations.md)).
 
 | Script | Role | Docs |
 |---|---|---|
@@ -16,6 +17,7 @@ implement, see the parent [docs/](../) directory
 | `datfile.py` | Turbine DAT container reader (`DatFile`, `DatChain`) + CLI | [datfile.md](datfile.md) |
 | `mesh_decode.py` | Unified static+skinned GfxObj mesh decoder + validation stats + CLI | [mesh_decode.md](mesh_decode.md) |
 | `tex_extract.py` | 0x41 DXT texture extraction + material-graph diffuse resolution + CLI | [tex_extract.md](tex_extract.md) |
+| `shaders.py` | 0x2B shader classification (alpha-test cutout vs. tint mask, dyeable, metallic) + CLI | [shaders.md](shaders.md) |
 | `propset.py` | Turbine PropertiesSet deserializer + property dictionary + CLI | [propset.md](propset.md) |
 | `selector.py` | Item → per-body garment mesh/material selector + CLI | [selector.md](selector.md) |
 | `wearable2.py` | Strict sequential 0x20 worn-appearance record parser + CLI | [wearable2.md](wearable2.md) |
@@ -38,10 +40,12 @@ For someone new to the codebase, roughly following the pipeline is easiest:
 4. [mesh_decode.py](mesh_decode.md) — how a mesh DID becomes geometry.
 5. [tex_extract.py](tex_extract.md) — how a material resolves to a diffuse
    texture PNG.
-6. [compose.py](compose.md) — assembling one full textured outfit.
-7. [export_skinned.py](export_skinned.md) / [havok_anim.py](havok_anim.md) —
+6. [shaders.py](shaders.md) — how a surface's shader decides alpha cutout
+   vs. tint mask, and dyeable/metallic response.
+7. [compose.py](compose.md) — assembling one full textured outfit.
+8. [export_skinned.py](export_skinned.md) / [havok_anim.py](havok_anim.md) —
    the animation branch (skeleton + clip).
-8. [items_catalog.py](items_catalog.md) — building the search index over
+9. [items_catalog.py](items_catalog.md) — building the search index over
    every item.
-9. [viewer.md](viewer.md) / [screenshot.py](screenshot.md) — rendering and
-   verifying the result.
+10. [viewer.md](viewer.md) / [screenshot.py](screenshot.md) — rendering and
+    verifying the result.

@@ -187,7 +187,7 @@ exists and can be substituted for a flat placeholder skin color; see
 
 - **UV / V-flip**: DXT/DDS data is top-down. A three.js-style renderer
   should disable the texture's automatic Y-flip and instead choose the
-  V-axis convention explicitly. **Raw V (no flip) is the operator-confirmed
+  V-axis convention explicitly. **Raw V (no flip) is the visually confirmed
   correct orientation** for worn-appearance meshes (bodice lands on the
   chest, skirt panels align correctly) — an earlier project note had this
   backwards; it is corrected here.
@@ -198,10 +198,23 @@ exists and can be substituted for a flat placeholder skin color; see
   renderer can build one geometry group per submesh with its own
   material/texture binding.
 
+## The `0x2B` shader decides cutout vs. tint mask
+
+The `0x2B` shader a surface names (see "22 bytes, not ~1076" above) isn't
+inert: counting occurrences of its compiled blob's uniform names classifies
+it as alpha-tested (alpha = **cutout**, e.g. hair, filigree, straps) or not
+(alpha = **tint mask**, the convention used above and in
+[dyes.md](dyes.md)). 17 shaders are classified this way, 8 of them
+alpha-tested, and the classification is exported per submesh
+(`{shader, shader_did, alpha_test, metallic, dyeable}`) for a renderer to
+consume. Full writeup, the classification method, and the worked
+face-vs-hair reconciliation: **[shaders.md](shaders.md)**.
+
 ## See also
 - [mesh-format.md](mesh-format.md) — the mesh geometry a texture is mapped onto
 - [wardrobe.md](wardrobe.md) — how the correct material for a specific item is selected
 - [dyes.md](dyes.md) — the dye tint applied on top of the diffuse's dyeable region
+- [shaders.md](shaders.md) — the `0x2B` shader classification: cutout vs. tint mask, metallic
 - [dat-format.md](dat-format.md) — DID type map (`0x40`/`0x41`/`0x30`/`0x31`/`0x2B`)
 - [scripts/tex_extract.md](scripts/tex_extract.md) — the reference implementation
 - [limitations.md](limitations.md) — texture-atlas subtleties still unresolved

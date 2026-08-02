@@ -279,6 +279,53 @@ touched enough during re-integration to pick up a renumbered or
 re-tagged species value on one body entry. For rendering purposes, two DIDs
 like this are the same garment and should be treated as such.
 
+## Chest-family slot blanking, generalized to Legs/Feet/Hands
+
+A chest garment's `0x20` entry can carry parts for slots **other** than
+chest — a dress or robe hides the leggings and boots it renders over; a
+hauberk supplies its own leg geometry instead of leaving that slot to a
+separate Legs item. This is the same three-way mechanism the head family
+uses for hair (see [hair-face.md](hair-face.md#three-hair-states-controlled-structurally-not-by-a-flag)),
+generalized to the Legs/Feet/Hands part tags of the chest family:
+
+| tag present | meaning |
+|---|---|
+| absent | that slot's own item (or the body's bare part, see below) renders normally |
+| tag → **stub** mesh (roughly under 2 KB) | that slot is **blanked** |
+| tag → **real** mesh | the chest item **supplies** that slot's geometry (hauberks) |
+
+Which chest-family tag maps to which slot is settled by measuring mesh
+extent rather than assumed: on a tunic-and-trousers pair, the Feet-tag part
+spans the Z range at ground level (feet), a Legs-tag part spans the full
+garment length, and a genuine standalone Legs item's own mesh spans a
+matching range. A third tag was initially misread as a collar-height band —
+wrong for a specific, avoidable reason: meshes are exported in **bind
+pose**, i.e. a T-pose, so hand geometry sits out at shoulder height in a
+narrow Z band rather than down at the hips where it would sit in a natural
+standing pose.
+
+## Bare body parts: hands and feet, when nothing else supplies them
+
+A chest garment typically supplies arm/leg skin only down to the wrist/
+ankle; the hands and feet themselves come from the **body**, not from
+garment geometry, whenever no equipped item and no chest garment either
+supplies or blanks that slot. Missing this produces an arm that renders
+ending in a stump — the equipment slot for hands isn't involved at all,
+which is what makes the bug look checkbox-independent if only the item
+pipeline is checked.
+
+**The client ships no separate bare-foot mesh.** A bare foot is extracted
+from a sandal-style mesh by keeping only the submesh bound to the body's own
+**skin surface** and dropping the cloth-surfaced strap submesh — a sandal
+mesh already carries both a skin-surfaced foot and cloth-surfaced straps in
+one file, so no dedicated "naked foot" asset needs to exist separately. The
+per-body skin surface used for this test is the same one recorded in
+[textures.md](textures.md#skin-vs-cloth-surface-routing).
+
+A slot is asked of the body only when no item occupies it **and** no shown
+garment either provides or blanks it — the same rule, symmetric for hands
+and feet.
+
 ## Selector API summary
 
 A selector built on this format typically exposes:
@@ -302,6 +349,7 @@ A selector built on this format typically exposes:
 - [textures.md](textures.md) — resolving the entry's material to a diffuse image
 - [mesh-format.md](mesh-format.md) — decoding the entry's mesh DID (when present)
 - [hair-face.md](hair-face.md) — the head-slot family's own tag vocabulary and stub mechanism
+- [shaders.md](shaders.md) — what the shader, not the part tag, decides about how a part's texture alpha renders
 - [dyes.md](dyes.md) — the per-block `q` dye-floatCode connection
 - [limitations.md](limitations.md) — remaining gaps downstream of the selector
 - [scripts/wearable2.md](scripts/wearable2.md), [scripts/selector.md](scripts/selector.md) — reference implementations

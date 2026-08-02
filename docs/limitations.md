@@ -127,6 +127,12 @@ See [mesh-format.md](mesh-format.md#known-gaps).
   misplace texture detail in a way that doesn't look as obviously broken as
   a fully scrambled UV. Only spot-checked on a small number of mesh/texture
   pairs, not investigated in depth.
+- Whether the 17-shader `0x2B` classification (see [shaders.md](shaders.md))
+  is exhaustive across the whole item catalog, or more shaders turn up
+  outside the one race/sex body it was sampled on, is unconfirmed. A
+  specular/gloss-map hypothesis for why some plated armour sets read as
+  "not shiny" is explicitly unverified — see
+  [shaders.md](shaders.md#open).
 
 ### Sibling items / sleeve variants
 - The open texture-binding problem where one shared material has more than
@@ -163,8 +169,12 @@ See [mesh-format.md](mesh-format.md#known-gaps).
 
 ### Hair, face, beard
 - Hair-color tinting and the face compositor's layered cosmetic system
-  (eyebrows, complexion, mouth, war-paint layers) are not implemented —
-  only the base head/hair diffuse renders, untinted and uncomposited.
+  (eyebrows, complexion, mouth, war-paint layers, eye iris colour) are not
+  implemented — no script in this repository composes chargen head/hair
+  geometry at all. **Resolved separately**: which materials need an alpha
+  *cutout* versus an alpha *tint mask* — previously stated as a blanket
+  face/hair rule — is now known to be a per-shader property, not a
+  per-body-part one; see [shaders.md](shaders.md) and [hair-face.md](hair-face.md).
 - The Man-vs-Elf chargen table split is inferred (body scale plus
   beard-slot presence), not confirmed against the live character-creation
   screen.
@@ -212,5 +222,6 @@ See [mesh-format.md](mesh-format.md#known-gaps).
 - [wardrobe.md](wardrobe.md) — the selector this page's off-by-one history lives downstream of
 - [mesh-format.md](mesh-format.md) — the sliver bug and decoder gaps
 - [textures.md](textures.md) — texture-atlas subtleties still unresolved
+- [shaders.md](shaders.md) — `0x2B` shader classification: what's resolved, and what's still open
 - [dyes.md](dyes.md) — dye-palette and picker gaps
 - [animation.md](animation.md) — rigging gaps in detail

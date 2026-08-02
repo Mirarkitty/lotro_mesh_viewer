@@ -86,13 +86,26 @@ implemented in this project's rendering path — only the base face diffuse is
 rendered, which is visually complete (a real face) but not layered with
 cosmetic customization on top.
 
-⚠️ **Texture alpha is a tint mask, not opacity, on face and hair
-materials.** Rendering these parts with alpha-based transparency/cutout
-punches out the facial skin and leaves floating eyes and mouth geometry —
-the alpha channel marks dye/tint regions (the same mechanism as garment dye
-masking, see [dyes.md](dyes.md)), not visibility. Face and hair materials
-must render fully opaque; hair strand edges rendering as solid blocks rather
-than soft edges is a known, accepted cosmetic limitation of this approach.
+⚠️ **Texture alpha is a tint mask on the face, but a cutout on hair — this
+is a per-shader property, not a blanket face/hair rule.** An earlier version
+of this page treated all face and hair materials as alpha-tint-mask-only,
+because rendering with an alpha cutout enabled unconditionally punches out
+facial skin and leaves floating eyes/mouth geometry. That was correct for
+the *face* only by coincidence: [shaders.md](shaders.md) found that whether
+alpha is a cutout or a tint mask is decided by the `0x2B` shader a surface
+binds, not by which body part the surface belongs to. The chargen face
+binds a non-alpha-tested shader (`0x2B0009DE`) — alpha there really is a
+tint mask, exactly as before. Chargen hair binds alpha-tested shaders
+(`0x2B0009DF`/`0x2B0009B7`) — its alpha genuinely is a cutout, and a
+renderer that treats it as a tint mask (rendering hair fully opaque) gets
+the accepted-but-suboptimal "blocky strand edges instead of soft cutout
+edges" result this page previously described as a fixed limitation. See
+[shaders.md](shaders.md) for the classification method and the full
+alpha-tested shader table. This project's shader classification and its
+per-submesh `alpha_test` export cover garment materials (via `compose.py` —
+see [scripts/compose.md](scripts/compose.md)); chargen head/hair
+composition itself, described below, is not implemented by any script in
+this repository — see "Open" at the end of this page.
 
 ## Head-slot items (wardrobe side)
 
@@ -179,7 +192,12 @@ independently on two different race/sex body types.
 ## Open
 
 - Hair tint (the character hair-color property) and the face compositor
-  layer system are not implemented — only base diffuses render.
+  layer system are not implemented — only base diffuses render. The
+  alpha-cutout-vs-tint-mask distinction discussed above is resolved at the
+  *format* level (see [shaders.md](shaders.md)), but no script in this
+  repository currently composes chargen head/hair geometry at all, so
+  neither the shader classification nor the hair-color property has
+  anywhere to plug into yet.
 - The Man-vs-Elf chargen table split, inferred from body scale and
   beard-slot presence rather than name-resolved, is not confirmed against
   the live game's character-creation screen.
@@ -193,6 +211,7 @@ independently on two different race/sex body types.
 - [wardrobe.md](wardrobe.md) — the shared `0x20` grammar and per-family tag semantics
 - [properties.md](properties.md) — the typed PropertiesSet reader used for `0x47` records
 - [textures.md](textures.md) — the surface → material → diffuse chain style meshes bind through
+- [shaders.md](shaders.md) — the alpha cutout vs. tint mask classification that resolves the caveat above
 - [dyes.md](dyes.md) — the tint-mask mechanism shared with hair-color tinting
 - [animation.md](animation.md) — skinning a composed head/hair/beard set to the body's rig
 - [limitations.md](limitations.md) — open items in chargen selection

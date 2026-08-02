@@ -31,15 +31,25 @@ CLI:  python3 datfile.py <archive> info|walk|find|extract [DID] [-o FILE]
 import struct, os, threading
 
 class DatFile:
-    """One open archive handle. NOT lock-free: every reader shares `self.f`, so
-    each seek+read sequence is guarded by `self.lock` (an RLock — read_content
-    calls find_file, which re-enters). This is what lets the Flask viewers run
-    threaded=True; without it two concurrent slot composes interleave their
-    seeks on the same handle and silently return each other's bytes."""
+    """One archive, one file handle PER THREAD.
+
+    A shared handle has a shared file position, so two concurrent readers
+    interleave their seeks and each gets the other's bytes. Locking every
+    seek+read sequence (the previous fix) is correct in principle but proved
+    fragile: these archives are opened by several modules and the read paths
+    recurse, so it only takes one unguarded pair to corrupt a read — the
+    observed symptom being `AssertionError: dir node prefix not zero` from
+    read_dir under load, which then surfaced in the viewer as a slot silently
+    falling back to an unskinned mesh that never animates.
+
+    Thread-local handles remove the shared position altogether, so no lock
+    discipline is needed and concurrency is kept. `self.lock` is retained (as a
+    no-op RLock) only so any caller still using it keeps working."""
     def __init__(self, filename):
         self.filename=filename
         self.file_size=os.stat(filename).st_size
         self.lock=threading.RLock()
+        self._local=threading.local()
         self.f=open(filename,"rb")
         buf=self.f.read(2048)
         assert self._d(buf,0x101)==0x4C50, "not a Turbine PL dat"
@@ -48,6 +58,18 @@ class DatFile:
         self.size=self._d(buf,0x148)
         self.version=self._d(buf,0x14C)
         self.dir_off=self._d(buf,0x160)
+    @property
+    def f(self):
+        """This thread's own handle (opened on first use)."""
+        h=getattr(self._local,"h",None)
+        if h is None:
+            h=self._local.h=open(self.filename,"rb")
+        return h
+
+    @f.setter
+    def f(self,v):
+        self._local.h=v
+
     @staticmethod
     def _d(buf,o): return struct.unpack("<L",buf[o:o+4])[0]
 

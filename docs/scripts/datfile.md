@@ -114,14 +114,30 @@ observed bug source (see the compact-surface-record fix in
 whenever a record is parsed byte-exactly (not brute-scanned), `read_content`
 is the correct call.
 
-### Locking
+### Concurrency: one file handle per thread
 
-`DatFile` is **not** lock-free: every reader shares `self.f` (one open file
-handle), so each seek+read sequence is guarded by `self.lock`, an `RLock`
-(re-entrant because `read_content` calls `find_file`, which itself seeks).
+`DatFile` gives **each thread its own file handle** instead of guarding a
+single shared handle with a lock. `self.f` is a property backed by
+`threading.local()`: the first read on a given thread opens that thread's
+own handle lazily, and every subsequent read on that thread reuses it.
+
+This replaced an earlier design where every reader shared one `self.f` and
+each seek+read sequence was guarded by an `RLock`. That approach is correct
+in principle, but proved fragile in practice: these archives are opened from
+several different modules and the read paths recurse (`read_content` calls
+`find_file`, which itself seeks), so it only takes one unguarded call
+anywhere in that call graph to corrupt a read. The observed symptom was
+`AssertionError: dir node prefix not zero` out of `read_dir` under
+concurrent load — two readers had interleaved their seeks on the shared
+handle and each read bytes at the other's file position. A per-thread
+handle removes the shared position altogether, so no lock discipline is
+needed anywhere in the call graph, and concurrency is kept. `self.lock` (an
+`RLock`) is retained on the object only so any caller still referencing it
+keeps working — it is effectively a no-op under the current model.
+
 This is what lets [viewer.md](viewer.md) (`app.py`) run Flask with
-`threaded=True` — without it, two concurrent slot composes would interleave
-their seeks on the same handle and silently return each other's bytes.
+`threaded=True` safely: two concurrent slot composes now get independent
+file handles instead of interleaving seeks on a shared one.
 
 ## Gotchas & lessons
 

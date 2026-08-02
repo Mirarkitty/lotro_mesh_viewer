@@ -328,7 +328,7 @@ isolation.
 
 This gait classification method is **heuristic and confidence-scored**, not
 verified ground truth — see [limitations.md](limitations.md). Only one
-rig's walk/run family has been directly operator-confirmed by eye; other
+rig's walk/run family has been directly confirmed by human eye; other
 rigs' canonical walk/run clips are extended from the same method without
 independent visual confirmation yet.
 

@@ -12,6 +12,7 @@ Composes one wearable ENTRY (item x body) into a single viewer JSON:
 Usage: python3 compose.py <item_did_hex> <worn_app_hex> <outname>
    e.g. python3 compose.py 0x7000DA5B 0x20001E58 compose_exq_dwarfM
 """
+import threading
 import sys, json, struct, zlib, os
 import config
 import selector, wearable2, mesh_decode as M, tex_extract as tx
@@ -35,9 +36,25 @@ def skin_png(path):
     row = b"\x00" + bytes(SKIN_RGB) * 8
     png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + \
           chunk(b"IDAT", zlib.compress(row * 8)) + chunk(b"IEND", b"")
-    tmp = "%s.%d.tmp" % (path, os.getpid())      # atomic; served concurrently
+    tmp = "%s.%d.%d.tmp" % (path, os.getpid(), threading.get_ident())      # atomic; served concurrently
     open(tmp, "wb").write(png)
     os.replace(tmp, path)
+
+def _shader_fields(surf_did):
+    """Render hints for one submesh, from its surface's 0x2B shader (shaders.py).
+    Exported so the viewer can stop treating every surface as opaque cloth."""
+    try:
+        import shaders
+        sh = shaders.surface_shader(surf_did) if surf_did else None
+        if not sh:
+            return {}
+        name, alpha, dyeable, metallic, _ = shaders.info(sh)
+        return {"shader": name, "shader_did": "0x%08X" % sh,
+                "alpha_test": bool(alpha), "metallic": bool(metallic),
+                "dyeable": bool(dyeable)}
+    except Exception:
+        return {}
+
 
 _SURF_DIFFUSE_CACHE = {}
 def _surface_diffuse(surf_did):
@@ -123,6 +140,9 @@ def compose(item_did, app_did, outname, skin_bones=None, write=True):
             out["groups"].append(dict(
                 submesh=len(out["groups"]), vert_start=v0, vert_count=g["vert_count"],
                 tri_start=t0, tri_count=g["tri_count"], texture=tex,
+                # the surface's shader decides how this submesh must RENDER —
+                # alpha as a cutout vs a tint mask, and metal vs cloth response
+                **_shader_fields(s),
                 texture_source="compose: part 0x%08X surf 0x%08X" % (part["mesh"], s or 0)))
     if not out["groups"]:
         raise ValueError("no shipped meshes for this item on this body (data hole) - pick another body")

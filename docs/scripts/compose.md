@@ -12,14 +12,20 @@ worn appearance → mesh + material → texture → dye → **render**. It is th
 module [viewer.md](viewer.md)'s `/compose` route calls on demand when a user
 picks an item + body in the browser UI.
 
-It performs three things beyond plain mesh decoding:
+It performs four things beyond plain mesh decoding:
 1. **LOD dedup** — per part, per surface DID, keep only the largest-vertex
    submesh (multiple LOD levels of the same surface can be present in one
    mesh record; only one should render).
 2. **Skin/cloth texture routing** — per submesh, based on the GfxObj's own
    surface DID: known skin surfaces get a flat skin-tone placeholder PNG;
    cloth surfaces get the entry's resolved material diffuse.
-3. Optional **skin (bone) array export** for animated rendering, sliced in
+3. **Shader/render-hint export** — per submesh, resolves the surface's
+   `0x2B` shader (via [shaders.py](shaders.md)) and attaches
+   `{shader, shader_did, alpha_test, metallic, dyeable}` to the group so a
+   downstream renderer can distinguish an alpha cutout from an opaque tint
+   mask, and cloth from metal, instead of treating every surface as flat
+   opaque cloth.
+4. Optional **skin (bone) array export** for animated rendering, sliced in
    lockstep with the vertex arrays it emits.
 
 ## CLI usage
@@ -47,6 +53,7 @@ python3 compose.py 0x7000DA5B 0x20001E58 compose_exq_dwarfM
 | `compose` | `compose(item_did, app_did, outname, skin_bones=None, write=True)` | the composed viewer-JSON dict; also writes `decoded/<outname>.json` when `write=True` |
 | `is_skin` | `is_skin(surf, all_surfs)` | `True` if `surf` should be textured with the skin-tone placeholder rather than the garment diffuse |
 | `skin_png` | `skin_png(path)` | writes a tiny flat-color PNG (the skin-tone placeholder) atomically to `path` |
+| `_shader_fields` | `_shader_fields(surf_did)` | `{shader, shader_did, alpha_test, metallic, dyeable}` for one surface's `0x2B` shader (empty dict if the shader can't be resolved) — see [shaders.md](shaders.md) |
 
 `compose`'s `skin_bones` parameter: when set (a skeleton bone count), the
 output also carries flat `skinIndices`/`skinWeights` (4 per vertex,
@@ -57,9 +64,15 @@ wants to add bones + clip data before writing.
 
 Output shape: `{id, vertices, normals, uvs, triangles, groups, num_submeshes}`
 (plus `skinIndices`/`skinWeights` if `skin_bones` was given). Each group
-carries `texture` (a texture DID string, `"skintone"`, or `None`) and a
+carries `texture` (a texture DID string, `"skintone"`, or `None`), a
 `texture_source` string recording which part/surface it came from — useful
-for debugging a wrong-looking render.
+for debugging a wrong-looking render — and, when the submesh's surface
+resolves to a known `0x2B` shader, the render hints from `_shader_fields`:
+`shader` (the classified name, e.g. `"cutout_hair"`), `shader_did`,
+`alpha_test`, `metallic`, and `dyeable` (all booleans except the two DID/name
+strings). See [scripts/shaders.md](shaders.md) for the reference
+implementation and [../shaders.md](../shaders.md) for the format-level
+writeup these hints come from.
 
 ## How it works internally
 
@@ -128,6 +141,11 @@ partner surface for exposed skin).
   then `os.replace`s it) because `textures/` is served live by
   [viewer.md](viewer.md) with `threaded=True` while a compose may be
   in-flight.
+- **`_shader_fields` fails soft.** If the surface's shader can't be resolved
+  (unknown DID, archive lookup failure), it returns `{}` rather than
+  raising, so a group missing `shader`/`alpha_test`/etc. means "shader
+  unresolved," not "surface has no shader" — the two are not
+  distinguishable from the output alone.
 - **The real skin atlas is not implemented here.** The skin-tone
   placeholder is explicitly a placeholder — the module docstring notes the
   real skin ATLAS comes from the body's `0x01` Setup record, future work
@@ -140,7 +158,8 @@ partner surface for exposed skin).
 - [wearable2.py](wearable2.md) — the strict record parser this module reads blocks/parts/groups from.
 - [mesh_decode.py](mesh_decode.md) — decodes each individual part mesh.
 - [tex_extract.py](tex_extract.md) — resolves material/surface diffuses.
+- [shaders.py](shaders.md) — classifies the `0x2B` shader `_shader_fields` reads.
 - [export_skinned.py](export_skinned.md) — the `skin_bones` code path's sibling for full animation export.
 - [viewer.md](viewer.md) — the `/compose` route that calls this module on demand.
-- [../wardrobe.md](../wardrobe.md), [../dyes.md](../dyes.md) — format background.
+- [../wardrobe.md](../wardrobe.md), [../dyes.md](../dyes.md), [../shaders.md](../shaders.md) — format background.
 - [INDEX.md](INDEX.md) — full script index.

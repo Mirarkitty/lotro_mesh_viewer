@@ -39,10 +39,10 @@ Item search (`/search`) requires `items_catalog.jsonl` to already exist —
 build it once with [items_catalog.py](items_catalog.md).
 
 Flask, if installed, is run with `threaded=True` — safe because
-[datfile.py](datfile.md)'s `DatFile` handles are internally lock-protected
-(see that page's Locking section), so concurrent requests (e.g. two
+[datfile.py](datfile.md)'s `DatFile` gives each thread its own file handle
+(see that page's Concurrency section), so concurrent requests (e.g. two
 `/compose` calls) can share the same cached archive handles from
-[config.py](config.md) without corrupting each other's reads.
+[config.py](config.md) without interleaving seeks on a shared one.
 
 ## Routes (Flask mode)
 
@@ -130,6 +130,18 @@ materialIndex)` so each submesh renders with its own texture. A group whose
 `applyDye`'s skin-color logic); groups with no texture get a plain blue
 fallback material.
 
+**`alpha_test`/`metallic`/`dyeable` are exported but not yet consumed.**
+[compose.py](compose.md) attaches these render hints (from
+[shaders.py](shaders.md), see [../shaders.md](../shaders.md)) to every
+group it writes, but `index.html`'s material-building code, described
+above, keys materials by texture DID alone and does not read `d.groups`'
+shader fields at all — every surface still renders as a flat, opaque
+`MeshStandardMaterial` regardless of whether its shader is alpha-tested or
+metallic. The fields are exported for downstream renderers to pick up;
+wiring them into this viewer (alpha-test cutout materials, adjusted
+metalness/roughness, keying materials by `(texture, shader, alpha_test,
+metallic)` instead of texture alone) has not been done here.
+
 **Live polling** (`poll()`, every 5s): re-fetches `/list`; if the currently
 loaded mesh's vertex/triangle counts changed on disk (a decoder re-run), it
 reloads the SAME file in place (`doFit=false`) without resetting the
@@ -203,6 +215,7 @@ camera to a known angle before capturing.
 
 - [config.py](config.md) — the cached archive handles that make `threaded=True` safe.
 - [compose.py](compose.md), [selector.py](selector.md), [wearable2.py](wearable2.md) — the modules `/compose` and `/bodies` call into.
+- [shaders.py](shaders.md), [../shaders.md](../shaders.md) — the alpha_test/metallic/dyeable hints `compose.py` exports but this viewer doesn't yet consume.
 - [items_catalog.py](items_catalog.md) — builds `items_catalog.jsonl`, required for `/search`.
 - [export_skinned.py](export_skinned.md) — produces the JSON `anim.html` renders.
 - [tex_extract.py](tex_extract.md) — texture extraction underlying `/dyedtex`.

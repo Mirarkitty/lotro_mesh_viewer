@@ -88,6 +88,7 @@ posed, animated render. What remains open is mostly about *coverage* and
 | DID type map across archives | **Proven** for the types this project touches | [dat-format.md](dat-format.md) |
 | DXT texture decode | **Proven** | [textures.md](textures.md) |
 | Material → diffuse resolution | **Proven**, with documented traps | [textures.md](textures.md) |
+| `0x2B` shader classification (alpha cutout vs. tint mask, dyeable, metallic) | **Proven** for the 17 sampled shaders; exported by `compose.py`, not yet consumed by this repo's viewer | [shaders.md](shaders.md) |
 | Item PropertiesSet parse (exact, typed) | **Proven** | [properties.md](properties.md) |
 | Item → body → AppearanceKey → wardrobe entry (selector) | **Proven**, format fully derived and validated on 4,181/4,192 records | [wardrobe.md](wardrobe.md) |
 | Wardrobe entry → material/diffuse | **Proven** | [wardrobe.md](wardrobe.md) |
@@ -117,6 +118,7 @@ incidents.
 - [dat-format.md](dat-format.md) — the container format
 - [mesh-format.md](mesh-format.md) — GfxObj geometry decode
 - [textures.md](textures.md) — DXT textures and the material chain
+- [shaders.md](shaders.md) — `0x2B` shader classification: cutout vs. tint mask, metallic
 - [properties.md](properties.md) — the PropertiesSet format and property dictionary
 - [wardrobe.md](wardrobe.md) — worn-appearance records and the item selector
 - [dyes.md](dyes.md) — the dye system
