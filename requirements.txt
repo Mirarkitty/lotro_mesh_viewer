@@ -2,7 +2,8 @@
 numpy
 # Texture extraction (DDS -> PNG) needs Pillow.
 Pillow
-# Optional: full-featured viewer server (app.py falls back to stdlib without it).
+# Viewer servers: app.py falls back to stdlib without Flask, but the outfit
+# composer (outfit_app.py) requires it.
 flask
 # Optional: headless visual verification (screenshot.py).
 # playwright  (then: playwright install chromium)

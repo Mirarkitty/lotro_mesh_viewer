@@ -77,9 +77,27 @@ python3 app.py
 #    -> open http://127.0.0.1:8722/ and pick "exquisite_dwarfM":
 #       you should see the shaded dress from the screenshot below
 
-# 5. Optional: build the item catalog once to enable searching
-#    ~23,000 wearables BY NAME in the viewer's search box          (~5 min)
+# 5. Build the item catalog once — it powers item/set search by name
+#    and the outfit composer                                       (~5-10 min)
 python3 items_catalog.py
+
+# 6. The payoff: the full outfit composer                          (~1 min)
+#    Point it at your LotroCompanion character data — the ".lotrocompanion"
+#    directory LotroCompanion maintains in your home directory. This default
+#    is found automatically when the composer runs as the same user; setting
+#    it explicitly is only needed for another account or a copied directory:
+export LOTRO_COMPANION_DIR="$HOME/.lotrocompanion/data/characters"
+
+python3 outfit_app.py
+#    -> open http://127.0.0.1:8723/ — search items or whole armour sets
+#       per slot, pick body/dyes, watch the skinned avatar animate.
+#
+#    THIS IS HOW YOU LOAD AN OUTFIT FROM LOTROCOMPANION: with the data
+#    directory found, a "toon" row appears — pick your character, then one
+#    of its saved outfits: every slot fills with the right item and dye,
+#    exactly as saved in-game.
+#    (No LotroCompanion? https://github.com/LotroCompanion/lotro-companion —
+#    the composer works fine without it, just with no saved-outfit loader.)
 ```
 
 (`pip install -r requirements.txt` works too; Flask is optional — without
@@ -154,6 +172,9 @@ needed), which is what the viewer's item search box queries.
 | [`havok_anim.py`](havok_anim.py) | Havok tagfile + spline-clip decoder ([docs](docs/scripts/havok_anim.md)) |
 | [`export_skinned.py`](export_skinned.py) | mesh + skeleton + clip export ([docs](docs/scripts/export_skinned.md)) |
 | [`app.py`](app.py) + [`index.html`](index.html) / [`anim.html`](anim.html) | local three.js viewer ([docs](docs/scripts/viewer.md)) |
+| [`outfit_app.py`](outfit_app.py) + [`outfit.html`](outfit.html) | full outfit composer incl. the LotroCompanion outfit loader ([docs](docs/outfit-composer.md)) |
+| [`api_common.py`](api_common.py) | composer backend: search, sets, clips, LotroCompanion import ([docs](docs/scripts/api_common.md)) |
+| [`charparts.py`](charparts.py) | chargen head/hair/beard parts ([docs](docs/scripts/charparts.md)) |
 | [`screenshot.py`](screenshot.py) | headless visual verification ([docs](docs/scripts/screenshot.md)) |
 
 ## Verification culture
