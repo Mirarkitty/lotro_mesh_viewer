@@ -17,10 +17,13 @@ texture formats but has no mesh parser.
 
 *Every researched feature in one screenshot: a character's saved outfit
 loaded from [LotroCompanion](https://github.com/LotroCompanion) data (the
-"toon" dropdown), each slot resolved to its per-body garment mesh, textures
-and per-slot dyes applied (Red/Crimson here), hair and an alpha-cutout
-headpiece rendered by shader classification, and the whole avatar skinned to
-a skeleton with animation playback. See
+"toon" dropdown), each slot resolved to its per-body garment mesh with
+textures and dyes, hair and an alpha-cutout headpiece rendered by shader
+classification, **held weapons** (dual axes in hand, the bow on the back)
+resolved through their own PhysObj chain and rigid-bound to attachment
+bones, and the whole avatar skinned to a skeleton with animation playback —
+including the honest fallback: this character's race has no player rig, so
+the composer says so and shows the outfit on Man-F. See
 [the outfit-composer walkthrough](docs/outfit-composer.md) for how each
 control maps to the modules in this repo.*
 
@@ -44,6 +47,7 @@ this repository.
 | Item → per-race/sex body → garment mesh + material selector | Proven |
 | Dye system (floatCode model, palette, render math) | Proven |
 | Skeleton + skin weights + Havok spline-compressed clips | Mostly working |
+| Held items (weapons, class items): PhysObj → template → skeleton → meshes, rendered at attachment bones | Proven — see [weapons](docs/weapons.md) |
 | Per-item garment geometry on *every* body (human data holes) | Open — see [limitations](docs/limitations.md) |
 
 See [docs/overview.md](docs/overview.md) for the end-to-end pipeline and

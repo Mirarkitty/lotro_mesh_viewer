@@ -11,7 +11,7 @@ no image files were extracted from the game as-is.
   this repo's own outfit composer (`outfit_app.py`, set search, set-wide
   dye "Ered Luin Blue").
 - `outfit-loader.png` — the composer with a LotroCompanion saved outfit
-  loaded (toon Tawar, outfit #1), UI panel included on purpose: it
-  illustrates the loader controls (see ../outfit-composer.md).
+  loaded (toon Inja, outfit #2, incl. held weapons), UI panel included on
+  purpose: it illustrates the loader controls (see ../outfit-composer.md).
 
 Regenerate after decoder/viewer improvements and commit the new PNGs.

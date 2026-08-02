@@ -94,6 +94,21 @@ def _compose_skinned():
     except Exception as ex:
         return jsonify({"error": str(ex)[:200]}), 500
 
+@app.route("/compose_weapon")
+def _compose_weapon():
+    """Skinned held item (weapon/class item) rigid-bound to the body rig's
+    attachment bone. item=0x70… hex, body=rig label, slot=MainHand|OffHand|
+    Ranged|ClassItem, at=hand_r|hand_l|hip_l|hip_r|back (optional; default
+    per slot)."""
+    try:
+        item = int(request.args.get("item"), 16)
+        f, clip = api.compose_weapon(item, request.args.get("body"),
+                                     request.args.get("slot") or "MainHand",
+                                     at=request.args.get("at") or None)
+        return jsonify({"file": f, "clip_did": clip})
+    except Exception as ex:
+        return jsonify({"error": str(ex)[:200]}), 500
+
 @app.route("/compose_face")
 def _compose_face():
     """Default head (face) + hair for a body, skinned. Optional head_item/

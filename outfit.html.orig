@@ -109,10 +109,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const SLOTS = ["Head","Shoulders","Back","Chest","Hands","Legs","Feet"];
-// held slots: weapons/class items, rigid-bound to rweapon/lweapon attachment
-// bones (compose_weapon). They render only on the skinned (animate) path and
-// take no part in dyeing or the garment blanking rules.
-const WSLOTS = ["MainHand","OffHand","Ranged","ClassItem"];
 const BODIES = ["Man-M","Man-F","Hobbit-M","Hobbit-F","Dwarf-M","Elf-M","Elf-F"];
 const SKINS = {"fair":[239,208,184],"tan":[201,155,114],"brown":[141,93,63],"dark":[92,58,38]};
 // Hair textures are GREYSCALE neutral maps (measured: mean saturation 1.4, RGB
@@ -259,30 +255,6 @@ function ensureRig(d, label){
   aimLights();                          // facing is known now: re-aim the rig
   applyChosenClip();                    // the user's chosen clip, else the default
 }
-// ---- grip overlay: locomotion clips leave the fingers open; when a hand
-// holds a weapon, curl its finger chain over the clip pose each frame.
-// Finger bones point along +/-X at bind with palm down, so the curl is a
-// rotation about the local Y (forward) axis, mirrored per side.
-const _qGrip = new THREE.Quaternion(), _yAxis = new THREE.Vector3(0,1,0);
-const GRIP_CURL = [['fingers_base',55],['fingers_mid',70],['fingers_tip',40],
-                   ['pointer_base',55],['pointer_mid',70],
-                   ['thumb_base',30],['thumb_mid',45]];
-function applyGrip(){
-  if (!rig.bones) return;
-  for (const side of ['r','l']){
-    const holds = WSLOTS.some(s => { const st = state[s];
-      return st && st.item && st.mesh && st.mesh.visible &&
-             (st.at || WDEFAULT[s]) === 'hand_' + side; });
-    if (!holds) continue;
-    const sign = side === 'r' ? 1 : -1;
-    for (const [nm, deg] of GRIP_CURL){
-      const b = rig.bones.find(x => x.name === side + nm);
-      if (b) b.quaternion.multiply(
-        _qGrip.setFromAxisAngle(_yAxis, sign * deg * Math.PI / 180));
-    }
-  }
-}
-
 const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion();
 function applyPose(t){
   if (!rig.clip || !rig.bones) return;
@@ -303,7 +275,6 @@ function applyPose(t){
                            A[2][1]+(B[2][1]-A[2][1])*a,
                            A[2][2]+(B[2][2]-A[2][2])*a);
   }
-  applyGrip();      // curl fingers over the clip pose on weapon-holding hands
 }
 // scripted screenshots: freeze the loop at a clip phase (0..1)
 window.setPhase = p => { animPaused = true;
@@ -418,77 +389,6 @@ async function composeSlot(slot){
   if (st.staticFallback) setItemLabel(slot, st.item.name + ' ⚠ not animated');
   setStat(`${slot}: ${st.item.name}` + (st.staticFallback ? ' — NOT ANIMATED' : ''));
   if (slot === 'Head') composeFace();          // headwear decides hair
-  fitScene();
-  dirty = true;
-  } catch (e){ setErr(`${slot}: ${e}`); }
-  finally { opEnd(); }
-}
-
-// ---------- held items (weapons/class items) ----------
-// Skinned-path only: the mesh is rigid-bound server-side to the attachment
-// bone (rweapon/lweapon), so without the shared rig there is nothing sensible
-// to show — a static weapon would float at the bind location unposed.
-async function composeWeapon(slot){
-  const st = state[slot];
-  if (!st || !st.item) return;
-  if (!animOn()){
-    clearMesh(slot);
-    setItemLabel(slot, st.item.name + ' ⚠ needs animate');
-    return;
-  }
-  const bodyLabel = document.getElementById('body').value;
-  const seq = (loadSeq[slot] = (loadSeq[slot]||0) + 1);
-  opBegin(`composing ${slot}: ${st.item.name}…`);
-  try {
-  const q = `item=0x${st.item.did.toString(16)}` +
-            `&body=${encodeURIComponent(bodyLabel)}&slot=${slot}` +
-            (st.at ? `&at=${st.at}` : '');
-  const res = await (await fetch(`/compose_weapon?${q}`)).json();
-  if (res.error){ clearMesh(slot); setItemLabel(slot, st.item.name + ' ✗');
-                  setErr(`${slot}: ${res.error}`); return; }
-  const d = await (await fetch('/decoded/'+res.file)).json();
-  d.clip_did = res.clip_did;
-  if (seq !== loadSeq[slot]) return;          // stale
-  if (bodyLabel !== document.getElementById('body').value){
-    clearMesh(slot); composeWeapon(slot); return;   // body changed mid-fetch
-  }
-  clearMesh(slot);
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(d.vertices.flat()), 3));
-  g.setIndex(d.triangles.flat());
-  if (d.normals && d.normals.length === d.vertices.length)
-    g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(d.normals.flat()), 3));
-  else g.computeVertexNormals();
-  if (d.uvs && d.uvs.length === d.vertices.length){
-    const uv = new Float32Array(d.uvs.length*2);
-    for (let i=0;i<d.uvs.length;i++){ uv[2*i]=d.uvs[i][0]; uv[2*i+1]=d.uvs[i][1]; }
-    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-  }
-  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(d.skinIndices, 4));
-  g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(d.skinWeights, 4));
-  ensureRig(d, bodyLabel);
-  const keys = [], byKey = new Map();
-  for (const gr of (d.groups||[])){
-    const k = matKey(gr);
-    if (byKey.has(k)) continue;
-    byKey.set(k, keys.length); keys.push(gr);
-  }
-  const mats = keys.map(gr=>{
-    const t = gr.texture || '__none';
-    return (t === '__none' || t === 'skintone') ? plainMat() : matFor(gr, t);
-  });
-  g.clearGroups();
-  for (const gr of (d.groups||[]))
-    g.addGroup(gr.tri_start*3, gr.tri_count*3, byKey.get(matKey(gr)));
-  const sm = new THREE.SkinnedMesh(g, mats);
-  sm.frustumCulled = false;
-  rig.group.add(sm);
-  sm.updateMatrixWorld(true);
-  sm.bind(rig.skeleton, sm.matrixWorld);
-  sm.visible = st.visible;
-  st.mesh = sm;
-  setItemLabel(slot, st.item.name);
-  setStat(`${slot}: ${st.item.name}`);
   fitScene();
   dirty = true;
   } catch (e){ setErr(`${slot}: ${e}`); }
@@ -793,42 +693,8 @@ for (const slot of SLOTS){
     applyVisibility(); updateHash(); };
 }
 
-// where each held slot attaches; '' = the server default for the slot.
-// The game's own sheathed/drawn attach data is unresolved, so it's a choice.
-const ATTACHMENTS = ['hand_r','hand_l','hip_l','hip_r','back'];
-const WDEFAULT = {MainHand:'hand_r', OffHand:'hand_l', Ranged:'back', ClassItem:'hip_l'};
-for (const slot of WSLOTS){
-  state[slot] = {item:null, mesh:null, dye:'', visible:true, autoHidden:false, at:''};
-  const row = document.createElement('div');
-  row.innerHTML = `
-    <div class="slotrow">
-      <span class="slotlabel">${slot}</span>
-      <input type="checkbox" id="vis_${slot}" checked title="visible (untick = hidden)"/>
-      <span class="slotitem" id="item_${slot}">—</span>
-      <select id="at_${slot}" style="width:64px" title="attachment point">
-        ${ATTACHMENTS.map(a=>`<option value="${a}"${a===WDEFAULT[slot]?' selected':''}>${a.replace('_',' ')}</option>`).join('')}
-      </select>
-      <button id="x_${slot}" title="clear">×</button>
-    </div>`;
-  slotsDiv.appendChild(row);
-  row.querySelector('#x_'+slot).onclick = ()=>{ state[slot].item=null;
-    setItemLabel(slot,''); clearMesh(slot); updateHash(); };
-  row.querySelector('#vis_'+slot).onchange = e=>{ state[slot].visible = e.target.checked;
-    if (state[slot].mesh) state[slot].mesh.visible = e.target.checked;
-    dirty = true; updateHash(); };
-  row.querySelector('#at_'+slot).onchange = e=>{ state[slot].at = e.target.value;
-    composeWeapon(slot); updateHash(); };
-}
-
 async function pickItem(slot, r){
   state[slot].item = r;
-  // The item's own default dye (Item_ClothingColor). Undyed and default are
-  // different: floatCode 0.0 / absent means the item ships undyed, any positive
-  // code is a dye the game really applies, so an item picked fresh should show
-  // its default rather than bare cloth.
-  state[slot].dye = r.default_dye || '';
-  const dsel = document.getElementById('dye_' + slot);
-  if (dsel) dsel.value = state[slot].dye;
   setItemLabel(slot, r.name);
   composeSlot(slot);
   updateHash();
@@ -895,8 +761,7 @@ hairEl.onchange = ()=>{ localStorage.setItem('hair', hairEl.value);
 bodyEl.value = localStorage.getItem('outfitBody') || 'Man-F';
 skinEl.value = localStorage.getItem('skin') || 'fair';
 bodyEl.onchange = ()=>{ localStorage.setItem('outfitBody', bodyEl.value);
-  loadClipList(); composeFace(); for (const s of SLOTS) composeSlot(s);
-  for (const s of WSLOTS) composeWeapon(s); updateHash(); };
+  loadClipList(); composeFace(); for (const s of SLOTS) composeSlot(s); updateHash(); };
 skinEl.onchange = ()=>{ localStorage.setItem('skin', skinEl.value);
   charColors.skin = null;                     // manual swatch overrides
   for (const s of SLOTS) applySlotDye(s); composeFace(); updateHash(); };
@@ -1058,7 +923,6 @@ toonSel.onchange = ()=>{
     if (t && t.body && BODIES.includes(t.body)) bodyEl.value = t.body;
     loadClipList(); composeFace();
     for (const s2 of SLOTS) if (state[s2].item) composeSlot(s2);
-    for (const s2 of WSLOTS) if (state[s2].item) composeWeapon(s2);
     updateHash();
   }
 };
@@ -1076,14 +940,12 @@ outfitSel.onchange = async ()=>{
     const toon = toons.find(t => t.dir === toonSel.value);
     charStyles = (toon && toon.styles) || {};
     charColors = (toon && toon.colors) || {};
-    for (const s of [...SLOTS, ...WSLOTS]){  // a loaded outfit REPLACES the look
+    for (const s of SLOTS){                  // a loaded outfit REPLACES the look
       state[s].item = null; state[s].dye = ''; state[s].overrides = {};
       state[s].visible = true;
       setItemLabel(s, ''); clearMesh(s);
-      state[s].at = '';
       const el = document.getElementById('dye_' + s); if (el) el.value = '';
       const cb = document.getElementById('vis_' + s); if (cb) cb.checked = true;
-      const sel = document.getElementById('at_' + s); if (sel) sel.value = WDEFAULT[s] || '';
     }
     for (const [s, v] of Object.entries(r.slots)){
       state[s].item = {did: v.did, name: v.name};
@@ -1093,26 +955,17 @@ outfitSel.onchange = async ()=>{
       const el = document.getElementById('dye_' + s); if (el) el.value = state[s].dye;
       const cb = document.getElementById('vis_' + s); if (cb) cb.checked = state[s].visible;
     }
-    for (const [s, v] of Object.entries(r.held || {})){
-      state[s].item = {did: v.did, name: v.name};
-      state[s].visible = v.visible !== false;
-      setItemLabel(s, v.name);
-      const cb = document.getElementById('vis_' + s); if (cb) cb.checked = state[s].visible;
-    }
     loadClipList(); composeFace();
     // await the composes: each one calls setStat when it lands, so a summary
     // written before them is immediately overwritten by "Back: Cloak of …"
-    await Promise.all([
-      ...SLOTS.filter(s => state[s].item).map(s => composeSlot(s)),
-      ...WSLOTS.filter(s => state[s].item).map(s => composeWeapon(s))]);
+    await Promise.all(SLOTS.filter(s => state[s].item).map(s => composeSlot(s)));
     updateHash();
     const notes = [];
     if (!r.body) notes.push('no rig for this race — shown on ' + bodyEl.value);
     if (r.missing.length) notes.push(r.missing.length + ' item(s) not in catalog');
-    if (r.skipped.length) notes.push(r.skipped.length + ' aura/unknown slot(s) skipped');
-    setStat(`outfit: ${Object.keys(r.slots).length} pieces`
-            + (Object.keys(r.held || {}).length ? ` + ${Object.keys(r.held).length} held` : '')
-            + (notes.length ? ' — ' + notes.join('; ') : ''));
+    if (r.skipped.length) notes.push(r.skipped.length + ' weapon/aura slot(s) skipped');
+    setStat(`outfit: ${Object.keys(r.slots).length} pieces` +
+            (notes.length ? ' — ' + notes.join('; ') : ''));
   } catch (e){ setErr('outfit: ' + e); }
   finally { opEnd(); }
 };
@@ -1130,11 +983,11 @@ function updateHash(){
   p.set('body', bodyEl.value);
   p.set('skin', skinEl.value);
   if (clipSel.value) p.set('clip', clipSel.value);
-  for (const s of [...SLOTS, ...WSLOTS]){
+  for (const s of SLOTS){
     const st = state[s];
     if (st && st.item)
       p.set(s, (st.visible ? '' : '!') + st.item.did.toString(16) +
-               (st.dye ? ':' + st.dye : '') + (st.at ? '@' + st.at : ''));
+               (st.dye ? ':' + st.dye : ''));
   }
   history.replaceState(null, '', '#' + p.toString());
 }
@@ -1157,7 +1010,7 @@ async function applyHash(){
       const r = await (await fetch('/item?did=0x' + hex)).json();
       if (r.error) { setErr(`${s}: unknown item 0x${hex}`); return; }
       state[s].item = r;
-      state[s].dye = dye || r.default_dye || '';
+      state[s].dye = dye || '';
       state[s].visible = vis;
       setItemLabel(s, r.name);
       const el = document.getElementById('dye_' + s);
@@ -1166,24 +1019,9 @@ async function applyHash(){
       if (cb) cb.checked = vis;
     });
     await Promise.all(jobs);
-    // held items are not in the catalog, so no /item lookup: name = the DID
-    for (const s of WSLOTS.filter(s => p.get(s))){
-      let [hex, at] = p.get(s).split(':')[0].split('@');
-      const vis = !hex.startsWith('!');
-      if (!vis) hex = hex.slice(1);
-      state[s].item = {did: parseInt(hex, 16), name: '0x' + hex.toUpperCase()};
-      state[s].visible = vis;
-      state[s].at = at || '';
-      setItemLabel(s, state[s].item.name);
-      const cb = document.getElementById('vis_' + s);
-      if (cb) cb.checked = vis;
-      const sel = document.getElementById('at_' + s);
-      if (sel && at) sel.value = at;
-    }
   } finally { hashRestoring = false; }
   composeFace();
   for (const s of SLOTS) if (state[s].item) composeSlot(s);
-  for (const s of WSLOTS) if (state[s].item) composeWeapon(s);
   return true;
 }
 addEventListener('hashchange', ()=>{ if (!hashRestoring) applyHash(); });
@@ -1204,7 +1042,6 @@ document.getElementById("animate").onchange = ()=>{
   if (!animOn()) clearRig();
   composeFace();                             // face follows the active path
   for (const s of SLOTS) composeSlot(s);     // rebuild meshes on the other path
-  for (const s of WSLOTS) composeWeapon(s);  // skinned-only: cleared when off
 };
 document.getElementById("face").onchange = ()=> composeFace();
 // Boot: a URL hash fully describes the look, so it replaces the default boot.
@@ -1232,8 +1069,8 @@ function loop(){
   renderer.render(scene, camera);            // render every frame while a rig may move
 }
 loop();
-window.__dbg = {camera, controls, state, SLOTS, WSLOTS, THREE, renderer, scene, rig, face,
-                composeSlot, composeFace, composeWeapon, applyChosenClip, fitScene};
+window.__dbg = {camera, controls, state, SLOTS, THREE, renderer, scene, rig, face,
+                composeSlot, composeFace, applyChosenClip, fitScene};
 addEventListener('resize', ()=>{ camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); dirty = true; });
 </script>

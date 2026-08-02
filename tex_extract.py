@@ -189,7 +189,11 @@ def _compact_surface_materials(raw):
     if len(raw) < 22:
         return None
     did, sh, key, n = struct.unpack_from("<4I", raw, 0)
-    if (did >> 24) != 0x31 or (sh >> 24) != 0x2B or (key >> 24) != 0x10:
+    if (did >> 24) != 0x31 or (sh >> 24) != 0x2B:
+        return None
+    # third field: a 0x10 slot key on garment surfaces, a small int (seen: 1)
+    # on held-item surfaces (weapon meshes) — same layout otherwise
+    if (key >> 24) != 0x10 and key > 0xFF:
         return None
     if not (1 <= n <= 8) or len(raw) != 16 + 4 * n + 2:
         return None
