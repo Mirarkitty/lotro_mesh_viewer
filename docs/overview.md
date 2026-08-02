@@ -17,11 +17,8 @@ geometry and material it wears.
 ## Origin: "is it even possible?"
 
 This project started as a feasibility check, not a build. The prevailing
-belief (reinforced by the LOTRO Companion project's
-["Champollion" proof-of-concept](https://github.com/LotroCompanion/lotro-companion/issues/124),
-which announced a working mesh extractor around 2021–22 but never published
-code or disclosed the format) was that the mesh archive's contents are an
-opaque or encrypted blob. The deepest *published* prior RE effort,
+belief was that the mesh archive's contents are an opaque or encrypted
+blob. The deepest *published* prior RE effort,
 [jtauber/lotro](https://github.com/jtauber/lotro), backs this up indirectly:
 it fully solved the DAT container and the texture/terrain formats, but has no
 mesh parser at all.

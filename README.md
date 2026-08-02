@@ -11,9 +11,7 @@ Turbine DAT archive holding zlib-compressed Turbine **GfxObj**-family geometry
 decodes it. As far as we know this is the first published LOTRO mesh decoder:
 the deepest previously published effort,
 [jtauber/lotro](https://github.com/jtauber/lotro), solved the container and
-texture formats but has no mesh parser, and the LOTRO Companion project's
-"Champollion" proof-of-concept was
-[announced but never released](https://github.com/LotroCompanion/lotro-companion/issues/124).
+texture formats but has no mesh parser.
 
 ![The outfit composer: a saved character outfit loaded and rendered](docs/img/outfit-loader.png)
 
