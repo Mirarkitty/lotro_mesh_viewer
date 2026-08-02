@@ -39,7 +39,7 @@ python3 explore.py <query> [--deep] [--limit N] [--game-dir DIR]
 |---|---|
 | `query` | a name search term, or a DID: hex `0x`-prefixed of type `0x70` item / `0x20` worn-appearance / `0x06` mesh / `0x30` material / `0x31` surface / `0x41` texture / `0x2B` shader — or a decimal item id (the form LotroCompanion's `outfits.xml` uses) |
 | `--deep` | also decode meshes (submesh count, vertex strides, per-submesh surface → shader → diffuse, sliver check) — slower |
-| `--limit N` | max items shown for a name search (default 10) |
+| `--limit N` | max items shown for a name search (default 100) |
 | `--game-dir DIR` | LOTRO install directory (default `$LOTRO_DIR` or probing) |
 
 Name search and the reverse lookups need `items_catalog.jsonl`
@@ -71,8 +71,11 @@ item 0x7000DA5B  Exquisite Dress[vs]
 A name search (`python3 explore.py aurochs`) prints the same tree for
 every matching item, and ends with a `skipped:` section accounting for
 every match that was NOT expanded and why — beyond `--limit`, or a
-duplicate (same name + same binding) of an item already shown, with the
-DID of the row that stands in for it.
+true duplicate of an item already shown, with the DID of the row that
+stands in for it. Duplicate means same name AND the identical full set of
+per-body (appearance, key) bindings — a shared name alone never hides an
+item (the catalog holds ~96 name groups whose same-named members bind
+differently).
 
 Start from a **mesh** DID — submeshes with their full shader/material
 chain, then everyone who wears it:

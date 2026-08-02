@@ -515,7 +515,7 @@ def main():
     ap.add_argument("--deep", action="store_true",
                     help="decode meshes too (submeshes, strides, surfaces, "
                          "shaders) - slower")
-    ap.add_argument("--limit", type=int, default=10,
+    ap.add_argument("--limit", type=int, default=100,
                     help="max items for a name search (default %(default)s)")
     config.add_game_dir_argument(ap)
     args = ap.parse_args()
@@ -534,11 +534,15 @@ def main():
     ql = q.lower()
     hits = [r for r in catalog(required=True)
             if ql in (r.get("name") or "").lower()]
-    seen = {}          # (name, first key) -> the row shown for that signature
+    # Dedupe only TRUE duplicates: same name AND the identical full set of
+    # per-body (appearance, key) bindings. A shared name alone (reissues,
+    # different-slot pieces with one name) is not enough to hide an item.
+    seen = {}          # (name, all bindings) -> the row shown
     rows = []
-    dupes = []         # (row, kept_row): same name + same first binding
+    dupes = []
     for r in hits:
-        sig = (r.get("name"), r["bodies"][0]["key"] if r["bodies"] else 0)
+        sig = (r.get("name"),
+               tuple(sorted((b["app"], b["key"]) for b in r["bodies"])))
         if sig in seen:
             dupes.append((r, seen[sig]))
             continue
@@ -559,7 +563,8 @@ def main():
             print("  0x%08X  %-44s over --limit %d"
                   % (r["did"], r.get("name") or "(unnamed)", args.limit))
         for r, kept in dupes:
-            print("  0x%08X  %-44s same name+binding as 0x%08X%s"
+            print("  0x%08X  %-44s true duplicate of 0x%08X (same name + "
+                  "identical bindings)%s"
                   % (r["did"], r.get("name") or "(unnamed)", kept["did"],
                      "" if rows.index(kept) < args.limit else " (itself skipped)"))
         if len(rows) > args.limit:
