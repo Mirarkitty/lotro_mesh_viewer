@@ -18,6 +18,17 @@ library modules ([selector.py](selector.md), [wearable2.py](wearable2.md),
 [mesh_decode.py](mesh_decode.md), [tex_extract.py](tex_extract.md),
 [shaders.py](shaders.md)) from code.
 
+The tree is **deduplicated**: the first expansion of any entity (material,
+surface, texture, decoded mesh, wardrobe entry) is tagged `[@N]`, and every
+later occurrence prints `-> @N` instead of repeating the subtree — one
+material serving seven bodies, or two races sharing one wardrobe
+record+key, appears once. Per-body listings cover every race/sex the item
+binds; entry parts show their **LOD values** (`lod=10`), dye-variant
+blocks show their **dye floatCode** (`q=`, [dyes.md](../dyes.md)) with
+blocks 1..N collapsed to a range summary, and `--deep` mesh decoding
+groups **LOD chains** (submeshes sharing one surface — renderers keep the
+largest).
+
 ## CLI usage
 
 ```
@@ -40,18 +51,25 @@ without it.
 Search by name — every matching item resolved to its per-body bindings:
 
 ```
-$ python3 explore.py aurochs
-24 distinct items match 'aurochs' (showing 10)
-
-item 0x70033842  Ceremonial Hoary Aurochs Robe[e]
-├─ appearance key 0x10000447 (constant across bodies)
-├─ body Man-M      app 0x20001E54  key 0x10000447
-│  ├─ material 0x3000325B
-│  │  └─ diffuse 0x4119FDBE  1024x1024 DXT5
-│  ├─ part garment   mesh 0x0600D3F4  78704 B
-│  └─ part hands     mesh 0x0600D4B0  54680 B
+$ python3 explore.py 0x7000DA5B
+item 0x7000DA5B  Exquisite Dress[vs]
+├─ appearance key 0x10000417 (constant across bodies)
+├─ body Man-M      app 0x20001E54  key 0x10000417  [@1]
+│  └─ block 0  q=1.00  (1 material group, 3 parts)
+│     ├─ material 0x30003119  [@2]
+│     │  └─ diffuse 0x410DD7A5  1024x1024 DXT5  [@3]
+│     ├─ part garment   mesh 0x0600D550  147478 B  lod=10
+│     ├─ part feet-slot mesh 0x0600D65C  stub 196 B (blanks that slot)  lod=10
+│     └─ part legs-slot mesh 0x0600D665  stub 198 B (blanks that slot)
+├─ body Man-F      app 0x20001E55  key 0x10000417  [@4]
+│  └─ block 0  q=1.00  (1 material group, 3 parts)
+│     ├─ material 0x30003119  -> @2
+│     ├─ part garment   mesh 0x0600D9E4  163619 B  lod=10
 ...
 ```
+
+A name search (`python3 explore.py aurochs`) prints the same tree for
+every matching item.
 
 Start from a **mesh** DID — submeshes with their full shader/material
 chain, then everyone who wears it:
