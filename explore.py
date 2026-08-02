@@ -534,13 +534,15 @@ def main():
     ql = q.lower()
     hits = [r for r in catalog(required=True)
             if ql in (r.get("name") or "").lower()]
-    seen = set()
+    seen = {}          # (name, first key) -> the row shown for that signature
     rows = []
+    dupes = []         # (row, kept_row): same name + same first binding
     for r in hits:
         sig = (r.get("name"), r["bodies"][0]["key"] if r["bodies"] else 0)
         if sig in seen:
+            dupes.append((r, seen[sig]))
             continue
-        seen.add(sig)
+        seen[sig] = r
         rows.append(r)
     if not rows:
         sys.exit("nothing in the catalog matches %r" % q)
@@ -550,6 +552,18 @@ def main():
     for r in rows[:args.limit]:
         print("\n".join(dig_item(r["did"], deep=args.deep).render()))
         print()
+    # account for everything that matched but was not expanded, and why
+    if dupes or len(rows) > args.limit:
+        print("skipped:")
+        for r in rows[args.limit:]:
+            print("  0x%08X  %-44s over --limit %d"
+                  % (r["did"], r.get("name") or "(unnamed)", args.limit))
+        for r, kept in dupes:
+            print("  0x%08X  %-44s same name+binding as 0x%08X%s"
+                  % (r["did"], r.get("name") or "(unnamed)", kept["did"],
+                     "" if rows.index(kept) < args.limit else " (itself skipped)"))
+        if len(rows) > args.limit:
+            print("  (raise --limit or narrow the search term)")
 
 
 if __name__ == "__main__":

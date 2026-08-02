@@ -69,7 +69,10 @@ item 0x7000DA5B  Exquisite Dress[vs]
 ```
 
 A name search (`python3 explore.py aurochs`) prints the same tree for
-every matching item.
+every matching item, and ends with a `skipped:` section accounting for
+every match that was NOT expanded and why — beyond `--limit`, or a
+duplicate (same name + same binding) of an item already shown, with the
+DID of the row that stands in for it.
 
 Start from a **mesh** DID — submeshes with their full shader/material
 chain, then everyone who wears it:
