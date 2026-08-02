@@ -76,7 +76,13 @@ true duplicate of an item already shown, with the DID of the row that
 stands in for it. Duplicate means same name AND the identical full set of
 per-body (appearance, key) bindings — a shared name alone never hides an
 item (the catalog holds ~96 name groups whose same-named members bind
-differently).
+differently). When a collapsed duplicate carries a different default dye
+(`Item_ClothingColor`), the skip line says so.
+
+Item trees show the item's **default dye** when it has one —
+`default dye: Crimson (0.04)` — the `Item_ClothingColor` floatCode
+resolved against the dye palette ([../dyes.md](../dyes.md)); it is a
+render-time tint, separate from the dye-variant `q=` blocks.
 
 Start from a **mesh** DID — submeshes with their full shader/material
 chain, then everyone who wears it:

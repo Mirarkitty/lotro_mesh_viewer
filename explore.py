@@ -152,6 +152,29 @@ def catalog(required=False):
     return _catalog
 
 
+_dyes = None
+
+def dye_name(float_code):
+    """Dye name for an Item_ClothingColor floatCode ('Crimson (0.04)'), or
+    just the code when the palette has no entry for it. float32 storage
+    wobbles the value (0.6000000238...), so match with tolerance."""
+    global _dyes
+    if not float_code:
+        return None
+    if _dyes is None:
+        try:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "dye_colors.json")) as f:
+                _dyes = {v["floatCode"]: k for k, v in json.load(f).items()
+                         if isinstance(v, dict) and "floatCode" in v}
+        except (OSError, ValueError):
+            _dyes = {}
+    for fc, name in _dyes.items():
+        if abs(fc - float_code) < 5e-3:
+            return "%s (%.2f)" % (name, float_code)
+    return "code %.2f (not in the scraped palette)" % float_code
+
+
 SPECIES = {23: "Man", 65: "Elf", 73: "Dwarf", 81: "Hobbit", 114: "Beorning",
            117: "HighElf", 120: "Stoutaxe", 125: "sp125"}
 SEX = {0x1000: "M", 0x2000: "F"}
@@ -421,6 +444,10 @@ def dig_item(did, deep=False):
     except Exception as ex:
         root.add("resolve FAILED: %s" % str(ex)[:100])
         return root
+    dn = dye_name(row.get("clothing_color")) if row else None
+    if dn:
+        root.add("default dye: %s  (Item_ClothingColor - a render-time tint, "
+                 "docs/dyes.md)" % dn)
     if res["appearance_key"] is not None:
         root.add("appearance key %s (constant across bodies)"
                  % _h(res["appearance_key"]))
@@ -611,10 +638,16 @@ def main():
             print("  0x%08X  %-44s over --limit %d"
                   % (r["did"], r.get("name") or "(unnamed)", args.limit))
         for r, kept in dupes:
+            cc, kc = r.get("clothing_color"), kept.get("clothing_color")
+            dyediff = ""
+            if (cc or 0) != (kc or 0):
+                dyediff = "; BUT default dye differs: %s vs %s" % (
+                    dye_name(cc) or "none", dye_name(kc) or "none")
             print("  0x%08X  %-44s true duplicate of 0x%08X (same name + "
-                  "identical bindings)%s"
+                  "identical bindings)%s%s"
                   % (r["did"], r.get("name") or "(unnamed)", kept["did"],
-                     "" if rows.index(kept) < args.limit else " (itself skipped)"))
+                     "" if rows.index(kept) < args.limit else " (itself skipped)",
+                     dyediff))
         if len(rows) > args.limit:
             print("  (raise --limit or narrow the search term)")
 
