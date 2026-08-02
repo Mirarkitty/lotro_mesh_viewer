@@ -68,7 +68,7 @@ real face, hair and coloring. See
 | Control | Module / format doc |
 |---|---|
 | `body` (race/sex) + `skin`/`hair` pickers | per-body [worn-appearance records](wardrobe.md), [hair & face](hair-face.md) |
-| per-slot `search …` boxes | the catalog built by [items_catalog.py](scripts/items_catalog.md) |
+| per-slot `search …` boxes | the catalog built by [items_catalog.py](scripts/items_catalog.md); also takes a bare DID — item `0x70…`, appearance `0x20…`, or LotroCompanion's decimal itemId |
 | `set` search (whole armour sets) | catalog name-stem grouping over the same data |
 | per-slot / set-wide `dye` dropdowns | the [dye system](dyes.md) (`alpha < 128` tint mask) |
 | the `toon` / outfit dropdowns | the saved-outfit loader above |

@@ -666,7 +666,8 @@ for (const slot of SLOTS){
     <div class="slotrow">
       <span class="slotlabel">${slot}</span>
       <input type="checkbox" id="vis_${slot}" checked title="visible (LotroCompanion 'visible' flag)"/>
-      <input id="q_${slot}" placeholder="search ${slot.toLowerCase()}…" style="width:96px"/>
+      <input id="q_${slot}" placeholder="search ${slot.toLowerCase()}…" style="width:96px"
+             title="name, or a DID: item 0x70… / appearance 0x20… / LotroCompanion decimal id"/>
       <span class="slotitem" id="item_${slot}">—</span>
       <select id="dye_${slot}" style="width:60px"><option value="">dye</option></select>
       <button id="x_${slot}" title="clear">×</button>

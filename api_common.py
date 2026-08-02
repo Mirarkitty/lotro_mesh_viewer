@@ -406,9 +406,38 @@ def _row(r):
                 clothing_color=r.get("clothing_color"),
                 bodies=_bodies_out(r["bodies"]))
 
+_DID_RE = re.compile(r"^(?:0x)?([0-9a-fA-F]{6,8})$")
+
+
 def search(q, slot=None, limit=100):
-    """Ranked item search. slot: optional slot name ("Legs") to filter by."""
-    q = fold((q or "").strip())
+    """Ranked item search. slot: optional slot name ("Legs") to filter by.
+
+    A bare DID also works — item DID (0x70…) or APPEARANCE DID (0x20…), with or
+    without the 0x, and in hex or decimal. Appearance IDs are what the wearable
+    records, LotroCompanion exports and every log line in this project actually
+    carry, so being able to paste one straight into the box saves reversing it
+    back to a name by hand."""
+    raw = (q or "").strip()
+    hit = _DID_RE.match(raw)
+    if hit or raw.isdigit():
+        did = int(hit.group(1), 16) if hit else int(raw)
+        out = []
+        for r in catalog():
+            if not any(b.get("present") for b in r["bodies"]):
+                continue
+            if slot and slot_name(r.get("slot")) != slot:
+                continue
+            # the item's own DID, or any of its per-body appearance DIDs
+            if r["did"] == did or any(b.get("app") == did for b in r["bodies"]):
+                row = _row(r)
+                row["matched"] = ("item" if r["did"] == did else "appearance")
+                out.append(row)
+                if len(out) >= limit:
+                    break
+        if out:
+            return out
+        # not a DID we know: fall through and try it as text
+    q = fold(raw)
     if len(q) < 2: return []
     terms = q.split()
     scored = []

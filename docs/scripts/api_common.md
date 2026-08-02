@@ -34,7 +34,7 @@ It covers four areas:
 |---|---|---|
 | `fold` | `fold(t)` | accent-folded, lowercased string for search matching (`Ordâkhai` → `ordakhai`) |
 | `catalog` | `catalog()` | the full parsed `items_catalog.jsonl` (loaded once, memoized) |
-| `search` | `search(q, slot=None, limit=100)` | ranked, deduped item rows matching a name query, optionally filtered to one slot; requires ≥1 body `present` |
+| `search` | `search(q, slot=None, limit=100)` | ranked, deduped item rows matching a name query, optionally filtered to one slot; requires ≥1 body `present`. A bare DID also works — item DID (`0x70…`), appearance DID (`0x20…`, returns every item sharing that record, rows tagged `matched: "item"/"appearance"`), with or without `0x`, or the decimal itemId form LotroCompanion's `outfits.xml` uses; an unmatched DID falls through to text search |
 | `set_stem` | `set_stem(name)` | the item's set name with piece words (`helm`, `gloves`, `of`, `heavy`, …) stripped off the tail |
 | `setmates` | `setmates(did)` | `{stem, slots: {slotName: [row...]}}` — other items sharing this item's set stem, grouped by slot |
 | `sets_index` | `sets_index()` | `{stem: {slots, weights}}` over the whole catalog, for stems covering ≥3 distinct single-bit slots (memoized) |
