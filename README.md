@@ -15,6 +15,14 @@ texture formats but has no mesh parser, and the LOTRO Companion project's
 "Champollion" proof-of-concept was
 [announced but never released](https://github.com/LotroCompanion/lotro-companion/issues/124).
 
+| ![Snow-dusted Travelling set composed on an Elf body](docs/img/outfit-snowdusted.png) | ![The same outfit dyed Ered Luin Blue](docs/img/outfit-snowdusted-dyed.png) |
+|:--:|:--:|
+| The *Snow-dusted Travelling* set — five items resolved, composed and skinned onto an Elf body, mid walk cycle | The same outfit with the *Ered Luin Blue* dye applied: dyeable cloth tints, snow/fur/metal regions don't |
+
+Everything in these renders — geometry, textures, skinning, the walk
+animation, the dye math — was decoded from the `.dat` files by the code in
+this repository.
+
 ## What works
 
 | Area | Status |
@@ -79,7 +87,11 @@ python3 app.py                           # → http://127.0.0.1:8722/
 ```
 
 The viewer serves a mesh browser with item search, per-body composition and
-dye preview at `/`, and skinned-animation playback at `/anim`. Item search
+dye preview at `/`, and skinned-animation playback at `/anim`.
+
+| ![Composed Exquisite Dress, shaded](docs/img/viewer-shaded.png) | ![The same mesh in wireframe](docs/img/viewer-wire.png) |
+|:--:|:--:|
+| The viewer showing a composed garment (Exquisite Dress on the Dwarf body) | The wireframe toggle — part of the visual-verification loop | Item search
 (`/search`) requires `items_catalog.jsonl` to exist — build it with
 `items_catalog.py` above before using the search box.
 
@@ -163,7 +175,9 @@ of it) and you may use everything else under MIT.
 ## Legal
 
 This is an interoperability/preservation research project. It contains **no
-game assets** — only code and format documentation. Extracting assets requires
+extracted game assets** — only code, format documentation, and a few small
+documentation screenshots of content rendered by the toolkit, included for
+illustration. Extracting assets requires
 your own legal installation of LOTRO; extracted content remains the property
 of its copyright holders and must not be redistributed. LOTRO is a trademark
 of Standing Stone Games / Middle-earth Enterprises; this project is not

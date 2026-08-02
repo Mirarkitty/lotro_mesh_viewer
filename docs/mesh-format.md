@@ -159,6 +159,15 @@ mesh and flags a scrambled index/vertex mapping. The sliver-triangle count
 in this check should always be 0 for a correctly decoded mesh — treat any
 nonzero count as a decode bug, not noise.
 
+A correctly decoded, correctly indexed mesh looks like this in the viewer —
+clean shading and a wireframe with uniformly small triangles, no cross-mesh
+spikes (a composed multi-part garment; see
+[scripts/compose.md](scripts/compose.md)):
+
+| ![Composed garment, shaded](img/viewer-shaded.png) | ![Same mesh, wireframe](img/viewer-wire.png) |
+|:--:|:--:|
+| Shaded | Wireframe (the sliver check, visually) |
+
 ## UV values outside [0,1] are normal, not corruption
 
 A well-decoded mesh can legitimately have `u` values outside `[0, 1]` —

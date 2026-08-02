@@ -9,3 +9,5 @@ items_catalog.jsonl
 *.bin
 # screenshots from the visual-verification loop
 *.png
+# ...except the curated documentation images
+!docs/img/*.png

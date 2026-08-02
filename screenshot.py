@@ -28,6 +28,8 @@ ap.add_argument("mesh", help="value of the viewer's #pick dropdown = the "
 ap.add_argument("out", help="output PNG path ('.png' appended if missing)")
 ap.add_argument("--flip", action="store_true",
                 help="check the viewer's flip-V checkbox before rendering")
+ap.add_argument("--wire", action="store_true",
+                help="render in wireframe (the viewer's #wire checkbox)")
 ap.add_argument("--url", default="http://127.0.0.1:8722/",
                 help="viewer URL (default: %(default)s)")
 ap.add_argument("--wait", type=float, default=2.5,
@@ -50,6 +52,8 @@ with sync_playwright() as p:
     pg.uncheck("#spin")            # a spinning mesh screenshots inconsistently
     if args.flip:
         pg.check("#flip")
+    if args.wire:
+        pg.check("#wire")
     pg.wait_for_timeout(args.wait * 1000)
     print("stats:", (pg.text_content("#stats") or "").replace("\n", " "))
     pg.screenshot(path=out)

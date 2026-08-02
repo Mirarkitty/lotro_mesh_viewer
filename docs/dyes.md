@@ -32,6 +32,14 @@ model is:
 final.rgb = alpha < 128 ? tex.rgb * dye_RGB : tex.rgb
 ```
 
+The model in action — the *Snow-dusted Travelling* set undyed and dyed
+*Ered Luin Blue*. Only the low-alpha cloth region tints; the snow dusting,
+fur trim and buckles keep their fixed colors:
+
+| ![Snow-dusted Travelling set, undyed](img/outfit-snowdusted.png) | ![Dyed Ered Luin Blue](img/outfit-snowdusted-dyed.png) |
+|:--:|:--:|
+| Undyed | Dyed *Ered Luin Blue* |
+
 ⚠️ An earlier, cruder version of this model applied the multiply to the
 *entire* cloth surface uniformly, based on a whole-image saturation
 measurement. That measurement was later flagged as suspect: the texture
