@@ -116,25 +116,35 @@ See [mesh-format.md](mesh-format.md#known-gaps).
 
 ### Weapons and held items
 Previously an open area (no geometry pipeline at all for weapons, shields,
-or class items); now **solved for the core chain** — see
-[weapons.md](weapons.md) for the full writeup, verified end to end on 9
-held items across two characters' outfits. What remains open:
+or class items); now **solved for the core chain**, including a
+parent-`0x47` chain hop for daggers/two-handed swords and worn class
+items (Rune-satchels, …) routed to the wearable pipeline instead of their
+misleading `PhysObj` — see [weapons.md](weapons.md) for the full writeup,
+verified end to end on 9 held items across two characters' outfits. What
+remains open:
 - **Real attach transforms are not read from the client files.** The
   bone/rotation/offset used per attachment point is hand-tuned against a
   rendered T-pose, not decoded game data — see
-  [weapons.md](weapons.md#open-gaps).
+  [weapons.md](weapons.md#open-gaps). The hip orientation is now
+  weapon-type-aware (swords hang blade-down, axes/maces head-up,
+  `HIP_INVERT_CLASSES`), but the underlying transform is still a
+  hand-tuned constant, not per-item client data.
 - **Sheathed vs. drawn is not modelled.** A held item always renders at
   one fixed, user-chosen attachment point; there's no automatic
-  switch between a stowed and an in-combat pose.
+  switch between a stowed and an in-combat pose, and no per-weapon
+  sheathe transform — only the shared hip/back constants above.
 - **Handedness/mirroring is verified for the specific weapons tested
   (axes), not swept across weapon shapes generally** — an asymmetrically
   modelled weapon could still look wrong when the same mesh is mirrored
   onto the off-hand bone.
-- **Dyeable weapon/shield properties (the `0x1F` template's alternate
-  38-byte, parent+override form) are unimplemented** — this is presumed
-  to be the path shields need, since they dye like armour rather than
-  rendering as a fixed-material weapon, but it hasn't been built or
-  tested.
+- **Dyeable weapon/shield properties are unimplemented for the
+  `PhysObj`-chain items specifically** (the `0x1F` template's alternate
+  38-byte, parent+override form) — this is presumed to be the path
+  shields need, since they dye like armour rather than rendering as a
+  fixed-material weapon, but it hasn't been built or tested. Worn class
+  items already dye correctly, because they render through the ordinary
+  wearable `cloth_dyed` pipeline instead of this chain — see
+  [weapons.md](weapons.md#dyeing-held-items).
 - **One part-mesh type in a multi-mesh skeleton trailer — a shadow- or
   billboard-style record — is not decodable** by `mesh_decode.py`; an
   item whose trailer includes one of these renders with that part

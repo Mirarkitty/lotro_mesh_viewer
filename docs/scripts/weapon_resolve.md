@@ -58,6 +58,7 @@ a batch of DIDs can be swept without one bad item aborting the run.
 ```python
 {
     "item": item_did,
+    "item_class": <Item_Class value, or None>,
     "physobj": <0x47 DID>,
     "template": <0x1F DID>,
     "skeleton": <0x04 DID>,
@@ -67,11 +68,17 @@ a batch of DIDs can be swept without one bad item aborting the run.
 }
 ```
 
+`item_class` is the item's own `Item_Class` property, read from the item's
+top-level properties (not the `0x47` entity) before the template chain is
+followed — `api_common.compose_weapon` uses it to decide hip-stow
+orientation (`HIP_INVERT_CLASSES`, see [../weapons.md](../weapons.md#attachment-bones-rigid-binding-grip-overlay)).
+
 It raises `ValueError` at the first broken link: no `PhysObj` property on
-the item, a template with no `0x04` entry (the "0x20-referencing form" —
-see [../weapons.md](../weapons.md#open-gaps) on the unimplemented
-dyeable-props template variant), or a `0x04` record with no recognizable
-mesh trailer.
+the item, a `0x47`-to-`0x47` parent chain (see below) that doesn't reach a
+`0x1F` template within 8 hops, a template with no `0x04` entry (the
+"0x20-referencing form" — see [../weapons.md](../weapons.md#open-gaps) on
+the unimplemented dyeable-props template variant), or a `0x04` record with
+no recognizable mesh trailer.
 
 ## How it works internally
 
@@ -90,6 +97,21 @@ The trailing properties are render hints (imbue-streak vectors,
 `Render_LODClass`, `ScriptSystem_FxOverlay_Physobj`), not geometry — see
 [../weapons.md](../weapons.md#dead-ends). `resolve_weapon` returns them as
 `physobj_props` for inspection, but nothing downstream reads them.
+
+### Parent-`0x47` chains — daggers, two-handed swords
+
+`parse_physobj`'s `template` return isn't always a `0x1F` DID. On some
+weapons (daggers, two-handed swords observed) it's *another* `0x47` DID —
+a shared base entity that several distinct items point at in common —
+which itself has to be parsed the same way to find the real `0x1F`
+template underneath. `resolve_weapon` loops on this: while the "template"
+it just got back is still `0x47`-tagged, it calls `parse_physobj` again on
+that DID and merges the base object's properties into the item's own
+(`pprops.setdefault(k, v)` — the item's own property always wins over the
+shared base's when both carry the same key), up to 8 hops before giving
+up. This is what lets `item_class` above be read correctly even for items
+whose own `0x47` entity doesn't carry it directly, only the shared base
+does.
 
 ### `template_skeleton` — the `0x1F` template record
 
@@ -140,6 +162,11 @@ mesh, checked in that order via `mesh_where`), and `client_gamelogic.dat`
 - **A `None` from `template_skeleton` is a real, expected outcome**, not
   necessarily a bug — it means the template uses the unimplemented
   38-byte dyeable-props form, not that the chain is broken.
+- **The parent-`0x47` hop count is capped at 8, silently.** A chain that
+  is genuinely longer than 8 hops (none observed) would fall through the
+  `while` loop still `0x47`-tagged and raise the "no `0x1F` template"
+  `ValueError` below rather than an explicit "hop limit exceeded" one —
+  the two failure causes look identical from the exception message alone.
 
 ## See also
 

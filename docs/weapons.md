@@ -34,6 +34,18 @@ branching at all — a weapon's mesh is the same regardless of who's
 holding it. `weapon_resolve.py`'s `resolve_weapon(item_did)` implements
 every step in one call.
 
+**Parent-`0x47` chains.** Some weapons' `0x47` entity doesn't point at a
+`0x1F` template directly — its "template" field is itself another `0x47`
+DID, a shared base object (seen on daggers and two-handed swords).
+`resolve_weapon` follows this chain automatically, up to 8 hops, re-running
+`parse_physobj` on each parent and merging that parent's properties into
+the child's via `dict.setdefault` (the child's own properties win on any
+key both carry) until it lands on an actual `0x1F` template; a chain that
+doesn't bottom out within 8 hops raises rather than looping forever.
+`resolve_weapon`'s result also now exposes `item_class` (the item's own
+`Item_Class` property), read before the chain is followed — used
+downstream to decide hip-stow orientation (see "Attachment" below).
+
 The `0x04` record here is genuinely a Havok skeleton packfile (the same
 container format documented in [animation.md](animation.md#container-format-havok-binary-tagfile))
 — but for a weapon it's a degenerate one, present only to carry the mesh
@@ -113,6 +125,32 @@ third `u32`, weapon surfaces carry a small plain integer instead (seen: 1).
 [shaders.md](shaders.md) (opaque, undyeable) rather than one of the named
 patterns.
 
+## Worn class items: the torch-`PhysObj` trap
+
+Not every "held" slot item is actually held. Some class items — Rune-keeper
+satchels, kinship-provided instruments — carry an
+`Item_WornAppearanceMapList` exactly like a garment, keyed per (species,
+sex) the same way a chest piece is. Their `PhysObj` still resolves through
+the chain above, but it doesn't lead to the item's real appearance: it's
+the *generic ground-prop model* used for a dropped/world representation of
+the item (measured on a Rune-satchel: the `PhysObj` chain terminates in a
+torch mesh, unrelated to a satchel in every dimension). Resolving these
+items purely through `weapon_resolve` would render the wrong geometry with
+no error to catch it — the chain succeeds end to end, it just succeeds at
+the wrong object.
+
+`compose_weapon` (`api_common.py`) checks for this before touching the
+`PhysObj` chain at all: `_worn_app_for(item_did, label)` looks up the
+item's `Item_WornAppearanceMapList` entry for the target body the same way
+a garment's is looked up (`selector.appearance_map`), and if one exists,
+`compose_weapon` delegates straight to `compose_skinned` — the ordinary
+wearable pipeline — instead of resolving `PhysObj`. Only items with **no**
+worn-appearance entry (true held props: weapons, most class items) fall
+through to the `PhysObj`/`0x47`/`0x1F`/`0x04` chain. This means a
+"class item" row in the composer's held slots can render via either
+pipeline depending on the specific item, silently and correctly, without
+the caller needing to know which.
+
 ## Attachment: bones, rigid binding, grip overlay
 
 A held item needs a bone and a local offset, not skin weights — the
@@ -124,11 +162,13 @@ rotate/offset pre-transform:
 
 ```python
 ATTACH = {
-    "hand_r": {"bone": "rweapon",   "rot": (0, 0, 0),   "off": (0, 0, 0)},
-    "hand_l": {"bone": "lweapon",   "rot": (0, 180, 0), "off": (0, 0, 0)},
-    "hip_l":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (-0.18, 0.05, 0)},
-    "hip_r":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (0.18, 0.05, 0)},
-    "back":   {"bone": "midback",   "rot": (90, 25, 0), "off": (0, -0.15, 0.15)},
+    "hand_r": {"bone": "rweapon",   "rot": (0, 0, 0),    "off": (0, 0, 0)},
+    "hand_l": {"bone": "lweapon",   "rot": (0, 180, 0),  "off": (0, 0, 0)},
+    # hang handle-up, blade/head down (+Y -> -Z), then turn the blade plane
+    # flat against the body pointing backward (+X -> -Y)
+    "hip_l":  {"bone": "hipgirdle", "rot": (-90, 0, -90), "off": (-0.18, 0.05, 0)},
+    "hip_r":  {"bone": "hipgirdle", "rot": (-90, 0, -90), "off": (0.18, 0.05, 0)},
+    "back":   {"bone": "midback",   "rot": (90, 25, 0),  "off": (0, -0.15, 0.15)},
 }
 ```
 
@@ -140,15 +180,41 @@ into model space at that bone's bind-pose transform so the mesh follows
 the bone through any clip without needing per-frame vertex work at render
 time.
 
-The bind pose is a T-pose with **identity world rotation** on every
-attachment bone (measured on Man-F: model Z-up, arms along ±X). Weapon
+The bind pose is a T-pose with **identity world rotation** on the hand
+attachment bones (measured on Man-F: model Z-up, arms along ±X). Weapon
 meshes are modelled grip-at-origin with the handle along local +Y — the
 fist's natural grip axis — so the in-hand attachment for `hand_r` is the
 identity transform; `hand_l` needs only a 180° rotation about the handle
 so the blade/head faces outward on the left side, with no mesh mirroring
-required (chirality is preserved). Hip and back carries use hand-tuned
-rotate/offset values, not data read from the client — see "Open gaps"
-below.
+required (chirality is preserved). `hipgirdle` is not identity-oriented
+the same way — its local Y points forward along the body rather than up —
+which is exactly the axis distinction the next paragraph is about.
+
+**The hip transforms were flipping about the wrong axis, and the fix is
+the axis lesson worth keeping.** An earlier version of `hip_l`/`hip_r`
+used a straight `(180, 0, 0)` rotation, which implicitly treated the
+attachment bone's local Y as pointing *up* — the same assumption that
+happens to be right for a limb bone, but `hipgirdle`'s local Y points
+*forward* along the body, not up. A 180°-about-X flip under that wrong
+assumption swung the weapon around the wrong axis entirely, rather than
+just hanging it upside down. The corrected transform, `(-90, 0, -90)`,
+is derived explicitly from where the weapon's own local axes need to end
+up in bone space: `+Y -> -Z` hangs the weapon handle-up, blade/head down,
+and `+X -> -Y` then turns the blade's flat plane against the body,
+pointing backward, instead of jutting out sideways. Hip and back carries
+remain hand-tuned rotate/offset values, not data read from the client —
+see "Open gaps" below.
+
+**Weapon-type-aware stowing (`HIP_INVERT_CLASSES`).** The transform above
+is the sword convention — hilt up, blade down — but axes and maces stow
+head-up at the belt instead, handle hanging down. `HIP_INVERT_CLASSES =
+{12, 30}` (`Item_Class` 12 = one-hand axe, 30 = mace/club/hammer) flags
+which items need the inverted orientation; `compose_weapon` reads
+`item_class` off `resolve_weapon`'s result (the parent-`0x47`-chain-aware
+value described above) and, for a hip attachment on a flagged class,
+flips the weapon 180° about its own blade axis and shifts it down so the
+head — not the grip — sits at the attach point. Only the hip attachments
+are affected; hand and back carries are unchanged by item class.
 
 **Grip overlay.** Locomotion clips pose the hand but leave the fingers in
 their open clip shape, which looks wrong wrapped around a hilt. The viewer
@@ -158,6 +224,32 @@ to it, via `applyGrip()` at the end of `applyPose()` in `outfit.html` — a
 small additional rotation about each bone's local Y axis, mirrored per
 side. The per-bone curl angles are hand-tuned to look plausible, not
 extracted from any game data.
+
+## Dyeing held items
+
+Held slots in the composer now get a per-slot dye dropdown, the same
+control the wearable slots have. What it actually changes depends on
+which pipeline rendered the item:
+
+- **Worn class items** (routed through `compose_skinned` — see "Worn
+  class items" above) dye exactly like a garment: their `cloth_dyed`
+  shader honors the [alpha-mask dye model](dyes.md), confirmed on the
+  Rune-satchel's own texture.
+- **True held items** (the `PhysObj` chain) dye through the same generic
+  mechanism now — `outfit.html`'s `composeWeapon` tracks `clothMats`/
+  `skinMats` for a held mesh's submeshes exactly as `composeSlot` does for
+  a garment, and applies the chosen dye's baked texture the same way. In
+  practice most weapon shaders classify as undyeable (see "Texture
+  binding" above), so picking a dye on a plain sword mostly has nothing
+  to visibly change — the mechanism is uniform, the *effect* isn't,
+  because the underlying shader data isn't.
+
+The set-wide **"dye all"** control stays wearables-only deliberately: it
+loops over the seven wearable slots only, never the held ones, because
+most weapon shaders can't take a dye and running it across held rows too
+would silently do nothing for the common case while implying it should.
+Dyeing a held item is still possible — just per-slot, from its own
+dropdown, not swept in by the bulk control.
 
 ## Open gaps
 
@@ -174,18 +266,31 @@ extracted from any game data.
   a left-hand bone — verified visually as *plausible* for the axes tested,
   not swept across weapon shapes broadly (a curved weapon modelled
   asymmetrically could still look wrong mirrored this way).
-- **Sheathed vs. drawn is not modelled at all.** The game shows weapons
-  stowed on the hip/back outside combat and in-hand when drawn; this
-  toolkit always renders a held item at one fixed attachment point chosen
-  by the user from a dropdown (`hand_r`/`hand_l`/`hip_l`/`hip_r`/
-  `back`), not switched automatically by combat stance.
-- **Dyeable weapon/shield properties are unimplemented.** A `0x1F`
-  template form was observed that's 38 bytes rather than the dominant
-  26-byte size and references a *parent* `0x1F` template plus a `0x20`
-  appearance record carrying property overrides — the likely path for
-  shields, which dye like armour rather than rendering as fixed-material
-  weapons, but this form wasn't needed for (and hasn't been exercised by)
-  any of the plain weapons resolved so far.
+- **Sheathed vs. drawn is only partly addressed.** The hip stow
+  orientation is now weapon-type-aware (`HIP_INVERT_CLASSES` — swords
+  hang hilt-up/blade-down, axes and maces hang head-up at the belt, see
+  "Attachment" above), so a stowed weapon at least *hangs the right way
+  up* for its type. What's still not modelled: the game switches a
+  weapon between a stowed hip/back placement and an in-hand drawn one
+  automatically by combat stance; this toolkit always renders at one
+  fixed attachment point chosen by the user from a dropdown
+  (`hand_r`/`hand_l`/`hip_l`/`hip_r`/`back`), with no automatic
+  switching and no per-item "this is how *this* weapon sheathes"
+  transform — the hip/back offsets are shared, hand-tuned constants, not
+  per-weapon data.
+- **Dyeable weapon/shield properties are unimplemented for the `PhysObj`
+  chain specifically.** Worn class items (Rune-satchels, …) already dye
+  correctly, because they render through the ordinary wearable
+  `cloth_dyed` pipeline (see "Worn class items" and "Dyeing held items"
+  above) — that part of this gap is closed. What remains open is the
+  `PhysObj`-chain weapons/shields: a `0x1F` template form was observed
+  that's 38 bytes rather than the dominant 26-byte size and references a
+  *parent* `0x1F` template plus a `0x20` appearance record carrying
+  property overrides — the likely path for shields, which dye like
+  armour rather than rendering as fixed-material weapons, but this form
+  wasn't needed for (and hasn't been exercised by) any of the plain
+  weapons resolved so far, and most weapon shaders classify as
+  undyeable regardless (see "Dyeing held items" above).
 - **One part-mesh in a multi-mesh skeleton trailer decoded with "no
   vertex blocks."** Multi-mesh trailers seen so far are separate parts
   (different bounding boxes), not LOD levels; one of three parts in a

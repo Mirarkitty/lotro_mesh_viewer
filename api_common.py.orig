@@ -399,11 +399,36 @@ def _bodies_out(bodies):
                                   SEX.get(b["sex"], "?")))
             for b in bodies]
 
+_dye_by_code = None
+def default_dye(float_code):
+    """Dye NAME for an Item_ClothingColor floatCode, or None.
+
+    UNDYED and DEFAULT are different things and this is where they part: no dye
+    in the palette has floatCode 0.0 (the range is 0.01 Ered Luin Blue .. 0.80
+    Turquoise), so 0.0 — or the property being absent — means the item ships
+    undyed, while any positive code is a real default dye the game applies.
+    Measured: Forged Plated Hauberk 0.0 (undyed), Exquisite Dress 0.1.
+
+    float32 storage wobbles the value (0.6 stores as 0.6000000238), so match on
+    a tolerance rather than equality — same rule as explore.dye_name."""
+    global _dye_by_code
+    if not float_code:
+        return None
+    if _dye_by_code is None:
+        _dye_by_code = [(v["floatCode"], k) for k, v in dyes().items()
+                        if isinstance(v, dict) and "floatCode" in v]
+    for code, name in _dye_by_code:
+        if abs(code - float_code) < 0.005:
+            return name
+    return None
+
+
 def _row(r):
     return dict(did=r["did"], name=_display(r["name"]), quality=r.get("quality"),
                 item_class=r.get("item_class"), level=r.get("level"),
                 slot=r.get("slot"), slot_name=slot_name(r.get("slot")),
                 clothing_color=r.get("clothing_color"),
+                default_dye=default_dye(r.get("clothing_color")),
                 bodies=_bodies_out(r["bodies"]))
 
 _DID_RE = re.compile(r"^(?:0x)?([0-9a-fA-F]{6,8})$")
@@ -522,6 +547,9 @@ COMPANION_DIRS = [
 COMPANION_SLOTS = {"HEAD": "Head", "SHOULDER": "Shoulders", "BREAST": "Chest",
                    "BACK": "Back", "HANDS": "Hands", "LEGS": "Legs",
                    "FEET": "Feet"}
+# held (non-wearable) slots we render via compose_weapon; auras stay skipped
+COMPANION_HELD_SLOTS = {"MAIN_MELEE": "MainHand", "OTHER_MELEE": "OffHand",
+                        "RANGED": "Ranged", "CLASS_ITEM": "ClassItem"}
 COMPANION_RACE = {"man": "Man", "elf": "Elf", "dwarf": "Dwarf",
                   "hobbit": "Hobbit", "beorning": "Beorning",
                   "high_elf": "HighElf", "stout_axe": "Stoutaxe"}
@@ -683,9 +711,11 @@ def companion_toons():
 
 def companion_outfit(toon, index):
     """One outfit resolved against our catalog:
-    {body, slots: {Head: {did, name, dye}, ...}, skipped: [...], missing: [...]}
-    skipped = slots we do not render (weapons/auras); missing = wearable slots
-    whose itemId is not in the catalog."""
+    {body, slots: {Head: {did, name, dye}, ...}, held: {MainHand: ...},
+    skipped: [...], missing: [...]}
+    held = weapons/class items rendered via compose_weapon; skipped = slots we
+    do not render (auras); missing = wearable slots whose itemId is not in the
+    catalog."""
     import xml.etree.ElementTree as ET
     base = companion_base()
     if not base:
@@ -705,14 +735,20 @@ def companion_outfit(toon, index):
         except ET.ParseError:
             pass
     cat = {r["did"]: r for r in catalog()}
-    slots, skipped, missing = {}, [], []
+    slots, skipped, missing, held = {}, [], [], {}
     for e in x:
         did = e.get("itemId")
         if not did:
             continue
         slot = COMPANION_SLOTS.get(e.get("slot"))
         if not slot:
-            skipped.append({"slot": e.get("slot"), "name": e.get("itemName")})
+            hslot = COMPANION_HELD_SLOTS.get(e.get("slot"))
+            if hslot and hslot not in held:
+                held[hslot] = {"did": int(did),
+                               "name": e.get("itemName") or "0x%X" % int(did),
+                               "visible": (e.get("visible") or "true") == "true"}
+            else:
+                skipped.append({"slot": e.get("slot"), "name": e.get("itemName")})
             continue
         did = int(did)
         row = cat.get(did)
@@ -724,7 +760,8 @@ def companion_outfit(toon, index):
                        "dye": e.get("color") or "",
                        # LotroCompanion's own per-slot show/hide toggle
                        "visible": (e.get("visible") or "true") == "true"}
-    return {"body": body, "slots": slots, "skipped": skipped, "missing": missing}
+    return {"body": body, "slots": slots, "skipped": skipped,
+            "missing": missing, "held": held}
 
 
 def item_row(item_did):
@@ -1020,6 +1057,121 @@ def compose_face(label, head_item=None, head_app=None, hands=False, feet=False,
         out["rig"] = "0x%08X" % rig
         out["body"] = label
         out["bones"] = bones
+        _dump_atomic(out, fp)
+    return name + ".json", default_clip(rig, label)
+
+# Attachment points for held items. The game's own attach data (drawn vs
+# sheathed transforms) is not yet resolved from the dat files, so these are
+# hand-tuned: bone name + a local pre-transform (rotate_deg XYZ applied in
+# that order, then offset, both in BONE space before the bind-pose bake).
+# Weapon meshes are modelled grip-at-origin, blade up local +Y.
+# Bind pose is a T-pose with IDENTITY world rotation on all attachment bones
+# (measured Man-F): model Z-up, arms along +/-X, weapon-local = model axes at
+# the bone. Weapons are modelled handle along +Y = the fist's grip axis, so
+# the in-hand attachments are identity; hand_l rotates 180 about the handle so
+# the blade faces outward on the left side without mirroring the mesh.
+ATTACH = {
+    "hand_r": {"bone": "rweapon", "rot": (0, 0, 0),  "off": (0, 0, 0)},
+    "hand_l": {"bone": "lweapon", "rot": (0, 180, 0), "off": (0, 0, 0)},
+    "hip_l":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (-0.18, 0.05, 0)},
+    "hip_r":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (0.18, 0.05, 0)},
+    # stave up and diagonal across the back: local +Y -> mostly +Z tilted +X
+    "back":   {"bone": "midback", "rot": (90, 25, 0), "off": (0, -0.15, 0.15)},
+}
+# held slot -> default attachment (rweapon/lweapon are dedicated child bones
+# of the wrists; the game rigidly parents drawn weapons to them)
+HELD_ATTACH = {"MainHand": "hand_r", "OffHand": "hand_l",
+               "Ranged": "back", "ClassItem": "hip_l"}
+
+def _bone_bind_world(bones, idx):
+    """4x4 bind-pose world transform of bone idx from the local t/q/s chain
+    (same composition the viewer's ensureRig does, minus the Z-up group)."""
+    import numpy as np
+    def rot(q):
+        x, y, z, w = q
+        return np.array([[1-2*(y*y+z*z), 2*(x*y-z*w),   2*(x*z+y*w)],
+                         [2*(x*y+z*w),   1-2*(x*x+z*z), 2*(y*z-x*w)],
+                         [2*(x*z-y*w),   2*(y*z+x*w),   1-2*(x*x+y*y)]])
+    chain = []
+    i = idx
+    while i >= 0:
+        chain.append(i)
+        i = bones[i]["parent"]
+    M = np.eye(4)
+    for i in reversed(chain):
+        b = bones[i]
+        L = np.eye(4)
+        L[:3, :3] = rot(b["q"]) @ np.diag(b["s"])
+        L[:3, 3] = b["t"]
+        M = M @ L
+    return M
+
+def compose_weapon(item_did, label, slot="MainHand", at=None):
+    """Skinned held item (weapon/class item) for a body: resolve the item's
+    meshes via the PhysObj chain (weapon_resolve), rigid-bind every vertex to
+    the attachment bone and bake the vertices into model space at that bone's
+    bind pose, so the mesh follows the bone through any clip. `at` picks the
+    attachment point (ATTACH key: hand_r/hand_l/hip_l/hip_r/back); default per
+    slot from HELD_ATTACH. Same JSON shape as compose_skinned (clip payload
+    NOT embedded). Cached decoded/animW_*.json; returns (file, clip DID)."""
+    import numpy as np
+    import charparts
+    import export_skinned as _es
+    from weapon_resolve import resolve_weapon
+    rig = RIGS.get(label)
+    if not rig:
+        raise ValueError("no rig known for body %s" % label)
+    at = at or HELD_ATTACH.get(slot)
+    a = ATTACH.get(at)
+    if not a:
+        raise ValueError("unknown attachment %r (slot %r)" % (at, slot))
+    bone_name = a["bone"]
+    name = "animW_%08X_%s_%s" % (item_did, label, at)
+    fp = os.path.join(DECODED, name + ".json")
+    if not os.path.exists(fp):
+        bones = _es.skeleton_bones(rig)
+        bidx = next((i for i, b in enumerate(bones)
+                     if b["name"].lower() == bone_name), None)
+        if bidx is None:
+            raise ValueError("bone %r not in %s rig" % (bone_name, label))
+        r = resolve_weapon(item_did)
+        out = dict(id=name, vertices=[], normals=[], uvs=[], triangles=[],
+                   groups=[], skinIndices=[], skinWeights=[])
+        for m in r["meshes"]:
+            charparts._append_mesh(out, m, skin_bones=len(bones),
+                                   rigid_bone=bidx)
+        if not out["vertices"]:
+            raise ValueError("item 0x%08X resolved but decoded no geometry"
+                             % item_did)
+        # weapon meshes are modelled in weapon-local space (grip at origin);
+        # skinning expects model-space verts at bind pose, so carry them to
+        # the attachment bone (after the attachment's own local pre-transform).
+        # Rigid binding then moves them with the clip.
+        M = _bone_bind_world(bones, bidx)
+        rx, ry, rz = [np.radians(x) for x in a["rot"]]
+        def _ax(c, s, i, j):
+            L = np.eye(3); L[i, i] = L[j, j] = c; L[i, j] = -s; L[j, i] = s
+            return L
+        Rl = (_ax(np.cos(rz), np.sin(rz), 0, 1)
+              @ _ax(np.cos(ry), np.sin(ry), 2, 0)
+              @ _ax(np.cos(rx), np.sin(rx), 1, 2))
+        Ll = np.eye(4)
+        Ll[:3, :3] = Rl
+        Ll[:3, 3] = a["off"]
+        M = M @ Ll
+        R, T = M[:3, :3], M[:3, 3]
+        for v in out["vertices"]:
+            v[:] = (R @ v + T).tolist()
+        for n in out["normals"]:
+            n[:] = (R @ n).tolist()
+        charparts._sanitize(out)
+        out["num_submeshes"] = len(out["groups"])
+        out["rig"] = "0x%08X" % rig
+        out["body"] = label
+        out["bones"] = bones
+        out["weapon"] = {"item": "0x%08X" % item_did, "slot": slot,
+                         "at": at, "bone": bone_name,
+                         "meshes": ["0x%08X" % m for m in r["meshes"]]}
         _dump_atomic(out, fp)
     return name + ".json", default_clip(rig, label)
 

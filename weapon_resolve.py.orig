@@ -73,25 +73,12 @@ def resolve_weapon(item_did):
     if not phys:
         raise ValueError("item 0x%08X has no PhysObj" % item_did)
     template, pprops = parse_physobj(gl.read_content(phys), registry(gl))
-    # some 0x47 entities point at a PARENT 0x47 (shared base object) rather
-    # than a 0x1F template directly (seen on daggers, 2h swords) — follow it
-    hops = 0
-    while (template >> 24) == 0x47 and hops < 8:
-        template, base_props = parse_physobj(gl.read_content(template),
-                                             registry(gl))
-        for k, v in base_props.items():
-            pprops.setdefault(k, v)
-        hops += 1
-    if (template >> 24) != 0x1F:
-        raise ValueError("physobj 0x%08X resolves to no 0x1F template "
-                         "(got 0x%08X)" % (phys, template))
     skel = template_skeleton(gen.read_content(template))
     if skel is None:
         raise ValueError("template 0x%08X carries no 0x04 entry" % template)
     meshes = skeleton_meshes(gen.read_content(skel))
     return {
         "item": item_did,
-        "item_class": props.get("Item_Class"),
         "physobj": phys,
         "template": template,
         "skeleton": skel,

@@ -433,6 +433,37 @@ def _row(r):
 
 _DID_RE = re.compile(r"^(?:0x)?([0-9a-fA-F]{6,8})$")
 
+# Inventory_DefaultSlot held-range bits -> viewer held slot names. Class
+# items (satchels, instruments, books) occupy the higher bits and may ALSO
+# carry a wearable-style appearance map (they are worn, not held).
+_HELD_BITS = {0x10000: "MainHand", 0x20000: "OffHand", 0x40000: "Ranged"}
+HELD_SLOT_NAMES = {"MainHand", "OffHand", "Ranged", "ClassItem"}
+
+def held_slot_of(r):
+    """Which held slot a catalog row belongs to, or None for wearables."""
+    s = r.get("slot") or 0
+    bits = s & 0xFFF0000
+    if not bits and not r.get("held"):
+        return None
+    for b, n in _HELD_BITS.items():
+        if bits & b:
+            return n
+    return "ClassItem" if (bits or r.get("held")) else None
+
+def _searchable(r, slot):
+    """Presence/slot predicate shared by both search paths. Held slots match
+    held rows (weapons render on any body, no presence concept); wearable
+    slots keep the per-body presence requirement."""
+    if slot in HELD_SLOT_NAMES:
+        h = held_slot_of(r)
+        # dual-wieldable main-hand weapons are valid off-hand picks too
+        return h == slot or (slot == "OffHand" and h == "MainHand")
+    if held_slot_of(r):
+        return False                       # held items only in held slots
+    if not any(b.get("present") for b in r["bodies"]):
+        return False
+    return not slot or slot_name(r.get("slot")) == slot
+
 
 def search(q, slot=None, limit=100):
     """Ranked item search. slot: optional slot name ("Legs") to filter by.
@@ -448,9 +479,7 @@ def search(q, slot=None, limit=100):
         did = int(hit.group(1), 16) if hit else int(raw)
         out = []
         for r in catalog():
-            if not any(b.get("present") for b in r["bodies"]):
-                continue
-            if slot and slot_name(r.get("slot")) != slot:
+            if not _searchable(r, slot):
                 continue
             # the item's own DID, or any of its per-body appearance DIDs
             if r["did"] == did or any(b.get("app") == did for b in r["bodies"]):
@@ -469,8 +498,7 @@ def search(q, slot=None, limit=100):
     for r in catalog():
         n = fold(r.get("name"))
         if not all(t in n for t in terms): continue
-        if not any(b.get("present") for b in r["bodies"]): continue
-        if slot and slot_name(r.get("slot")) != slot: continue
+        if not _searchable(r, slot): continue
         disp = _display(r["name"])
         d = fold(disp)
         rank = 0 if d == q else (1 if d.startswith(q) else 2)
@@ -746,6 +774,7 @@ def companion_outfit(toon, index):
             if hslot and hslot not in held:
                 held[hslot] = {"did": int(did),
                                "name": e.get("itemName") or "0x%X" % int(did),
+                               "dye": e.get("color") or "",
                                "visible": (e.get("visible") or "true") == "true"}
             else:
                 skipped.append({"slot": e.get("slot"), "name": e.get("itemName")})
@@ -1073,8 +1102,10 @@ def compose_face(label, head_item=None, head_app=None, hands=False, feet=False,
 ATTACH = {
     "hand_r": {"bone": "rweapon", "rot": (0, 0, 0),  "off": (0, 0, 0)},
     "hand_l": {"bone": "lweapon", "rot": (0, 180, 0), "off": (0, 0, 0)},
-    "hip_l":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (-0.18, 0.05, 0)},
-    "hip_r":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (0.18, 0.05, 0)},
+    # hang handle-up, blade/head down (+Y -> -Z), then turn the blade plane
+    # flat against the body pointing backward (+X -> -Y)
+    "hip_l":  {"bone": "hipgirdle", "rot": (-90, 0, -90), "off": (-0.18, 0.05, 0)},
+    "hip_r":  {"bone": "hipgirdle", "rot": (-90, 0, -90), "off": (0.18, 0.05, 0)},
     # stave up and diagonal across the back: local +Y -> mostly +Z tilted +X
     "back":   {"bone": "midback", "rot": (90, 25, 0), "off": (0, -0.15, 0.15)},
 }
@@ -1082,6 +1113,11 @@ ATTACH = {
 # of the wrists; the game rigidly parents drawn weapons to them)
 HELD_ATTACH = {"MainHand": "hand_r", "OffHand": "hand_l",
                "Ranged": "back", "ClassItem": "hip_l"}
+
+# Item_Class values that stow INVERTED at the hip (head-up at the belt,
+# handle hanging down) instead of the sword convention (hilt-up, blade down):
+# 12 = one-hand axe, 30 = mace/club/hammer.
+HIP_INVERT_CLASSES = {12, 30}
 
 def _bone_bind_world(bones, idx):
     """4x4 bind-pose world transform of bone idx from the local t/q/s chain
@@ -1106,6 +1142,20 @@ def _bone_bind_world(bones, idx):
         M = M @ L
     return M
 
+def _worn_app_for(item_did, label):
+    """The item's Item_WornAppearanceMapList appearance for a body label,
+    or None when the item has none (true held props)."""
+    import selector
+    try:
+        species = next(k for k, v in SPECIES.items() if v == label.split("-")[0])
+        sex = next(k for k, v in SEX.items() if v == label.split("-")[1])
+        bodies, _ = selector.appearance_map(item_did)
+        b = next((x for x in bodies
+                  if x["species"] == species and x["sex"] == sex), None)
+        return b and b["worn_appearance"]
+    except Exception:
+        return None
+
 def compose_weapon(item_did, label, slot="MainHand", at=None):
     """Skinned held item (weapon/class item) for a body: resolve the item's
     meshes via the PhysObj chain (weapon_resolve), rigid-bind every vertex to
@@ -1121,6 +1171,13 @@ def compose_weapon(item_did, label, slot="MainHand", at=None):
     rig = RIGS.get(label)
     if not rig:
         raise ValueError("no rig known for body %s" % label)
+    # Some class items (Rune-satchels, ...) are WORN, not held: they carry
+    # Item_WornAppearanceMapList like a garment, and their PhysObj is only
+    # the generic ground-prop model (a torch). Route those through the
+    # wearable pipeline, which places and skins them correctly.
+    app = _worn_app_for(item_did, label)
+    if app:
+        return compose_skinned(item_did, app)
     at = at or HELD_ATTACH.get(slot)
     a = ATTACH.get(at)
     if not a:
@@ -1155,9 +1212,16 @@ def compose_weapon(item_did, label, slot="MainHand", at=None):
         Rl = (_ax(np.cos(rz), np.sin(rz), 0, 1)
               @ _ax(np.cos(ry), np.sin(ry), 2, 0)
               @ _ax(np.cos(rx), np.sin(rx), 1, 2))
+        off = np.array(a["off"], dtype=float)
+        if at in ("hip_l", "hip_r") and r.get("item_class") in HIP_INVERT_CLASSES:
+            # axes/maces hang head-up at the belt: turn the weapon over
+            # (180 about its blade axis) and drop it so the head sits at
+            # the attach point instead of the grip
+            Rl = Rl @ np.diag([1.0, -1.0, -1.0])
+            off += (0, 0, -0.5)
         Ll = np.eye(4)
         Ll[:3, :3] = Rl
-        Ll[:3, 3] = a["off"]
+        Ll[:3, 3] = off
         M = M @ Ll
         R, T = M[:3, :3], M[:3, 3]
         for v in out["vertices"]:

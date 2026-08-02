@@ -49,10 +49,13 @@ Using it:
    applied via the [alpha-mask dye model](dyes.md).
 4. **Held items** (`MAIN_MELEE`, `OTHER_MELEE`, `RANGED`, `CLASS_ITEM` in
    LotroCompanion's slot naming) are imported into the `MainHand`/
-   `OffHand`/`Ranged`/`ClassItem` rows below the wearable slots and
-   rendered via the separate weapon chain (item → `PhysObj` → mesh — see
+   `OffHand`/`Ranged`/`ClassItem` rows below the wearable slots, carrying
+   the outfit's saved dye color for that slot the same way a wearable
+   slot's is, and rendered via the separate weapon chain (item →
+   `PhysObj` → mesh, or the wearable path for worn class items — see
    [weapons.md](weapons.md)), rigid-bound to an attachment bone rather
-   than skinned like a garment. Only aura slots (`*_AURA`) stay skipped
+   than skinned like a garment (unless it's a worn class item, which is
+   skinned). Only aura slots (`*_AURA`) stay skipped
    and reported in the status line, e.g. `outfit: 5 pieces + 3 held — 1
    aura/unknown slot(s) skipped`.
 
@@ -65,23 +68,51 @@ files by this repository's modules.
 Below the seven wearable slot rows, four more rows —
 `MainHand`/`OffHand`/`Ranged`/`ClassItem` — cover LotroCompanion's
 `MAIN_MELEE`/`OTHER_MELEE`/`RANGED`/`CLASS_ITEM` slots. These are held
-items, not garments: they don't participate in dyeing, the blanking rules
-(a dress doesn't hide a sword), or per-body wardrobe selection — they
-resolve through the separate chain documented in
-[weapons.md](weapons.md) and render only when animation is on (the mesh
-is rigid-bound to a bone in a posed skeleton; with animation off there is
-no sensible unposed placement to show, and the row instead reads
+items, not garments: they don't participate in the blanking rules (a
+dress doesn't hide a sword) or per-body wardrobe selection — most resolve
+through the separate `PhysObj` chain documented in
+[weapons.md](weapons.md) (a minority — worn class items like
+Rune-satchels — actually render through the ordinary wearable pipeline
+under the hood, see
+[weapons.md#worn-class-items-the-torch-physobj-trap](weapons.md#worn-class-items-the-torch-physobj-trap),
+transparently to the row). They render only when animation is on (the
+mesh is rigid-bound to a bone in a posed skeleton; with animation off
+there is no sensible unposed placement to show, and the row instead reads
 `⚠ needs animate`).
 
-Each row has its own **attachment dropdown**
-(`hand_r`/`hand_l`/`hip_l`/`hip_r`/`back`) — where the game's own
-drawn/sheathed attachment data isn't resolved from the client files (see
-[weapons.md](weapons.md#open-gaps)), this is the user-facing
-workaround: pick where the item visually attaches, per slot, independent
-of its default. Held-item search isn't wired into the per-slot search
-boxes (held items aren't in the item catalog — the catalog sweep only
-covers wearables); they're populated exclusively by the LotroCompanion
-importer, keyed by DID and shown by name from the saved outfit file.
+Each row has its own **search box**, working the same as a wearable
+slot's (name, or a bare item DID) — the search is scoped to that slot's
+held-slot bucket rather than a wearable slot name, and a dual-wieldable
+main-hand weapon shows up as a valid `OffHand` pick too, mirroring
+LotroCompanion's own `OTHER_MELEE` allowance (see
+[scripts/api_common.md](scripts/api_common.md#catalog--search--sets--setmates)).
+Each row shows **one contextual control** — whichever actually applies
+to the item (measured across a 120-item held sample, shields included:
+no true held prop has a dyeable shader, and worn-path class items have
+game-fixed placement):
+
+- a true held prop gets the **attachment dropdown**
+  (`hand_r`/`hand_l`/`hip_l`/`hip_r`/`back`): where the game's own
+  drawn/sheathed attachment data isn't resolved from the client files
+  (see [weapons.md](weapons.md#open-gaps)), this is the user-facing
+  workaround — pick where the item visually attaches, per slot;
+- a worn-path class item (satchel etc.) gets the **dye dropdown**
+  instead, same control as the wearable rows — see "Dyeing held items"
+  below. `/compose_weapon`'s `worn` flag is what the row switches on. Held rows are populated either by a manual search pick or
+by the LotroCompanion importer (keyed by DID, shown by name from the
+saved outfit file when imported).
+
+### Dyeing held items
+
+A worn-path class item's dye dropdown applies the same alpha-mask dye
+baking a wearable slot uses (see [dyes.md](dyes.md)) — it dyes like the
+garment it effectively is. True `PhysObj`-chain items don't get a dye
+control at all: a 120-item survey found none with a dyeable shader (see
+[weapons.md#dyeing-held-items](weapons.md#dyeing-held-items) for the
+full breakdown). The set-wide **"dye all"** control (next to the `set`
+search) stays wearables-only — it never touches the held rows, since most
+weapon shaders can't take a dye and sweeping it across held slots too
+would silently do nothing for the common case.
 
 Any hand holding a weapon also gets a **grip overlay** applied
 automatically: locomotion clips leave the fingers open, so the viewer
@@ -119,7 +150,14 @@ real face, hair and coloring. See
 | `anim`, `motion`, riding filters | [skeleton + clips](animation.md) via [havok_anim.py](scripts/havok_anim.md) / [export_skinned.py](scripts/export_skinned.md) |
 | slot checkboxes (show/hide) | the slot-blanking mechanism in [wardrobe.md](wardrobe.md) |
 | cutout/metal rendering | [shader classification](shaders.md) exported by [compose.py](scripts/compose.md) |
-| `MainHand`/`OffHand`/`Ranged`/`ClassItem` rows + attachment dropdowns | the held-item chain and attachment bones in [weapons.md](weapons.md) |
+| `MainHand`/`OffHand`/`Ranged`/`ClassItem` rows: search + one contextual control (attachment for held props, dye for worn class items) | the held-item chain, worn-class delegation, and attachment bones in [weapons.md](weapons.md) |
+
+The whole look — body, skin, every slot's item, dye and visibility, the
+chosen clip — lives in the page's URL hash so a reload or a shared link
+restores it. A held slot's hash value has the same shape a wearable
+slot's does plus an attachment suffix: `hex[:dye][@at]` (hex item DID,
+optional dye name, optional attachment point); a `!` prefix marks the
+slot hidden, matching the wearable convention.
 
 ## See also
 

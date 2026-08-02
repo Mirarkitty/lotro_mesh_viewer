@@ -36,7 +36,8 @@ It covers four areas:
 |---|---|---|
 | `fold` | `fold(t)` | accent-folded, lowercased string for search matching (`Ordâkhai` → `ordakhai`) |
 | `catalog` | `catalog()` | the full parsed `items_catalog.jsonl` (loaded once, memoized) |
-| `search` | `search(q, slot=None, limit=100)` | ranked, deduped item rows matching a name query, optionally filtered to one slot; requires ≥1 body `present`. A bare DID also works — item DID (`0x70…`), appearance DID (`0x20…`, returns every item sharing that record, rows tagged `matched: "item"/"appearance"`), with or without `0x`, or the decimal itemId form LotroCompanion's `outfits.xml` uses; an unmatched DID falls through to text search |
+| `search` | `search(q, slot=None, limit=100)` | ranked, deduped item rows matching a name query, optionally filtered to one slot. A bare DID also works — item DID (`0x70…`), appearance DID (`0x20…`, returns every item sharing that record, rows tagged `matched: "item"/"appearance"`), with or without `0x`, or the decimal itemId form LotroCompanion's `outfits.xml` uses; an unmatched DID falls through to text search |
+| `held_slot_of` | `held_slot_of(r)` | which held slot (`MainHand`/`OffHand`/`Ranged`/`ClassItem`) a catalog row belongs to, from its `Inventory_DefaultSlot` bits or a catalog-baked `held` flag; `None` for wearables |
 | `set_stem` | `set_stem(name)` | the item's set name with piece words (`helm`, `gloves`, `of`, `heavy`, …) stripped off the tail |
 | `setmates` | `setmates(did)` | `{stem, slots: {slotName: [row...]}}` — other items sharing this item's set stem, grouped by slot |
 | `sets_index` | `sets_index()` | `{stem: {slots, weights}}` over the whole catalog, for stems covering ≥3 distinct single-bit slots (memoized) |
@@ -53,6 +54,19 @@ that page). `bodies_for`, by contrast, recomputes presence live by parsing
 the item's `0x20` worn-appearance record on the spot — used where the
 catalog's cached flag isn't good enough (e.g. right after a catalog rebuild,
 or to double-check one item).
+
+**Held rows go through a different presence rule.** `search`'s per-row
+gate is `_searchable(r, slot)`, not the bare `present` check directly: for
+a `slot` in `HELD_SLOT_NAMES` (`MainHand`/`OffHand`/`Ranged`/`ClassItem`)
+it matches on `held_slot_of(r)` instead of body presence — held items
+render on any body, so "present" has no meaning for them, but they still
+have to be excluded from the *wearable* slots' search results, and
+wearables excluded from the held ones. One asymmetry is deliberate:
+`slot == "OffHand"` also matches a row whose `held_slot_of` is
+`"MainHand"`, because a dual-wieldable main-hand weapon is a valid
+off-hand pick too (LotroCompanion's own `OTHER_MELEE` slot works the same
+way); the reverse isn't true — an `OffHand`-only row doesn't show up
+under `MainHand`.
 
 Every catalog row (`_row`, what `search`/`setmates`/`item_row` return) also
 carries a `default_dye` field, resolved via `default_dye(row["clothing_color"])`.
@@ -216,8 +230,13 @@ slot names. `COMPANION_HELD_SLOTS` separately maps the held-item slots
 never go through `slots`/`missing`; they're rendered via
 [`compose_weapon`](#compose_weapon--held-items-weaponsclass-items) instead
 and returned under the outfit's own `held` key
-(`{did, name, visible}`, no catalog lookup — held items aren't in
-`items_catalog.jsonl`, so `name` is LotroCompanion's own saved item name).
+(`{did, name, dye, visible}`; `name` is LotroCompanion's own saved item
+name rather than a catalog lookup — held items *are* in
+`items_catalog.jsonl` as `held: true` rows (see
+[items_catalog.py](items_catalog.md)), but `companion_outfit` doesn't
+need to look them up: LotroCompanion's saved outfit already carries the
+item's display name. `dye` is LotroCompanion's saved color name for the
+slot, passed straight through the same as a wearable slot's `dye`).
 Everything else (`*_AURA`) stays in `skipped` — effects with no geometry
 worth rendering standalone, see [../weapons.md](../weapons.md#open-gaps).
 `companion_outfit` also reports `missing` — a worn wearable `itemId` that
@@ -287,39 +306,69 @@ skin tint. Cached at `decoded/animF_<body>_h<style>_<style>_<mode>[_hands]
 
 ### `compose_weapon` — held items (weapons/class items)
 
-`compose_weapon` is a separate chain from the wardrobe-based
+`compose_weapon` first checks whether the item is actually **worn**
+rather than held: `_worn_app_for(item_did, label)` looks up the item's
+`Item_WornAppearanceMapList` entry for the target body, the same lookup a
+garment uses. Some class items (Rune-satchels, kinship instruments) carry
+one — their `PhysObj` chain resolves to nothing more than a generic
+ground-prop model (a torch, in the case checked) and must not be trusted
+for geometry. When a worn-appearance entry exists, `compose_weapon`
+delegates straight to `compose_skinned(item_did, app)` — the ordinary
+wearable pipeline — and returns its result unchanged. See
+[../weapons.md](../weapons.md#worn-class-items-the-torch-physobj-trap)
+for the full story of why this check exists.
+
+Otherwise it's a separate chain from the wardrobe-based
 `compose_skinned`/`compose_face` above: it resolves the item's meshes via
 [`weapon_resolve.resolve_weapon`](weapon_resolve.md) (item → `PhysObj` →
-`0x47` entity → `0x1F` template → `0x04` skeleton trailer → `0x06` mesh
-DIDs — see [../weapons.md](../weapons.md) for the full format), then
-**rigid-binds** every vertex to one attachment bone
-(`charparts._append_mesh(..., rigid_bone=bidx)`, the same mechanism used
-for helm/head parts) and bakes the vertices into model space at that
-bone's bind-pose transform, so the mesh follows the bone through any clip
-without needing per-frame skin weights. Output is the same JSON shape as
-`compose_skinned` (clip payload **not** embedded, same rationale as
-above); cached at `decoded/animW_<item>_<body>_<at>.json`.
+`0x47` entity, following any parent-`0x47` chain → `0x1F` template →
+`0x04` skeleton trailer → `0x06` mesh DIDs — see
+[../weapons.md](../weapons.md) for the full format), then **rigid-binds**
+every vertex to one attachment bone (`charparts._append_mesh(...,
+rigid_bone=bidx)`, the same mechanism used for helm/head parts) and bakes
+the vertices into model space at that bone's bind-pose transform, so the
+mesh follows the bone through any clip without needing per-frame skin
+weights. Output is the same JSON shape as `compose_skinned` (clip payload
+**not** embedded, same rationale as above); cached at
+`decoded/animW_<item>_<body>_<at>.json`.
 
 ```python
 ATTACH = {
-    "hand_r": {"bone": "rweapon",   "rot": (0, 0, 0),   "off": (0, 0, 0)},
-    "hand_l": {"bone": "lweapon",   "rot": (0, 180, 0), "off": (0, 0, 0)},
-    "hip_l":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (-0.18, 0.05, 0)},
-    "hip_r":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (0.18, 0.05, 0)},
-    "back":   {"bone": "midback",   "rot": (90, 25, 0), "off": (0, -0.15, 0.15)},
+    "hand_r": {"bone": "rweapon",   "rot": (0, 0, 0),    "off": (0, 0, 0)},
+    "hand_l": {"bone": "lweapon",   "rot": (0, 180, 0),  "off": (0, 0, 0)},
+    "hip_l":  {"bone": "hipgirdle", "rot": (-90, 0, -90), "off": (-0.18, 0.05, 0)},
+    "hip_r":  {"bone": "hipgirdle", "rot": (-90, 0, -90), "off": (0.18, 0.05, 0)},
+    "back":   {"bone": "midback",   "rot": (90, 25, 0),  "off": (0, -0.15, 0.15)},
 }
 HELD_ATTACH = {"MainHand": "hand_r", "OffHand": "hand_l",
                "Ranged": "back", "ClassItem": "hip_l"}
+HIP_INVERT_CLASSES = {12, 30}   # one-hand axe, mace/club/hammer
 ```
 
 `ATTACH` maps an attachment name to a bone plus a local pre-transform
 (rotate `(x, y, z)` degrees applied in that order, then offset, both in
 bone space before the bind-pose bake) — hand-tuned against a rendered
 T-pose, not read from the client's own attach data (unresolved, see
-[../weapons.md](../weapons.md#open-gaps)). `HELD_ATTACH` is the
-default attachment per composer slot; `compose_weapon`'s `at` parameter
-overrides it (the outfit composer exposes this as a per-slot dropdown —
-see [../outfit-composer.md](../outfit-composer.md)). `_bone_bind_world`
+[../weapons.md](../weapons.md#open-gaps)). The hip rotation is
+`(-90, 0, -90)`, not the simpler `(180, 0, 0)` an earlier version used —
+`hipgirdle`'s local Y axis points forward along the body, not up, so a
+flip that implicitly assumed "Y is up" swung the weapon about the wrong
+axis; the corrected values map the weapon's local `+Y` to `-Z` (handle
+up, blade down) and `+X` to `-Y` (blade plane flat against the body,
+pointing backward) explicitly — see
+[../weapons.md](../weapons.md#attachment-bones-rigid-binding-grip-overlay)
+for the full axis derivation. `HIP_INVERT_CLASSES` then handles the
+weapons that stow the *other* way up: for a hip attachment,
+`compose_weapon` reads `item_class` off `resolve_weapon`'s result and, if
+it's in `HIP_INVERT_CLASSES` (axes, maces), flips the weapon 180° about
+its own blade axis and shifts it down so the head sits at the belt
+instead of the grip — hand and back attachments are unaffected by item
+class.
+
+`HELD_ATTACH` is the default attachment per composer slot;
+`compose_weapon`'s `at` parameter overrides it (the outfit composer
+exposes this as a per-slot dropdown — see
+[../outfit-composer.md](../outfit-composer.md)). `_bone_bind_world`
 computes a bone's bind-pose world transform by walking its parent chain
 through the rig's local `t`/`q`/`s` (translation/quaternion/scale) data —
 the same composition [`export_skinned.py`](export_skinned.md)'s

@@ -60,7 +60,7 @@ as [viewer.md](viewer.md)'s `app.py`.
 | `/bodies` | GET | `item` (hex) | `[{app, key, present, label}]` — `api.bodies_for(item)` (live, not catalog-cached) |
 | `/compose` | GET | `item`, `app` (hex) | `{file, overrides}` — `api.compose_cached` + `api.slot_overrides`; `{error}` + 500 on failure |
 | `/compose_skinned` | GET | `item`, `app` (hex) | `{file, clip_did, overrides}` — `api.compose_skinned` + `api.slot_overrides`; `{error}` + 500 |
-| `/compose_weapon` | GET | `item` (hex), `body`, `slot` (`MainHand`/`OffHand`/`Ranged`/`ClassItem`, default `MainHand`), `at` (`hand_r`/`hand_l`/`hip_l`/`hip_r`/`back`, optional — defaults per slot) | `{file, clip_did}` — a held item rigid-bound to the body's attachment bone, `api.compose_weapon`; `{error}` + 500 |
+| `/compose_weapon` | GET | `item` (hex), `body`, `slot` (`MainHand`/`OffHand`/`Ranged`/`ClassItem`, default `MainHand`), `at` (`hand_r`/`hand_l`/`hip_l`/`hip_r`/`back`, optional — defaults per slot) | `{file, clip_did, worn}` — a held item rigid-bound to the body's attachment bone (`api.compose_weapon`); `worn` is true for wearable-path class items (they dye, but have game-fixed placement — the viewer's held rows switch their contextual control on it); `{error}` + 500 |
 | `/compose_face` | GET | `body`, `head_item`/`head_app` (hex, optional), `hands` (`1`/`0`), `feet` (`1`/`0`), `head_style`, `hair_style` | `{file, clip_did}` — `api.compose_face`; `{error}` + 500 |
 | `/clips` | GET | `body`, `riding` (`hide`/`only`), `dedupe` (`1`/`0`, default `1`), `motion` | JSON array of clip rows — `api.clips_for_body`; `{error}` + 500 |
 | `/clip` | GET | `did` (int, base auto-detected), `body` | decoded clip JSON — `api.clip_cached`; `{error}` + 500 |

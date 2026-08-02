@@ -473,9 +473,16 @@ async function composeWeapon(slot){
     if (byKey.has(k)) continue;
     byKey.set(k, keys.length); keys.push(gr);
   }
+  st.clothMats = []; st.skinMats = [];
   const mats = keys.map(gr=>{
     const t = gr.texture || '__none';
-    return (t === '__none' || t === 'skintone') ? plainMat() : matFor(gr, t);
+    if (t === '__none') return plainMat();
+    if (t === 'skintone'){
+      const m = new THREE.MeshStandardMaterial({color:skinColor(), roughness:0.6, side:THREE.DoubleSide});
+      st.skinMats.push(m); return m;
+    }
+    const m = matFor(gr, t);
+    m.userData.texDid = t; st.clothMats.push(m); return m;
   });
   g.clearGroups();
   for (const gr of (d.groups||[]))
@@ -487,6 +494,12 @@ async function composeWeapon(slot){
   sm.bind(rig.skeleton, sm.matrixWorld);
   sm.visible = st.visible;
   st.mesh = sm;
+  await applySlotDye(slot);
+  // one contextual control per row: worn items (satchels…) dye but the game
+  // fixes their placement; true held props attach but never dye (measured:
+  // no held-weapon shader in a 120-item sample is dyeable, shields included)
+  document.getElementById('dye_'+slot).style.display = res.worn ? '' : 'none';
+  document.getElementById('at_'+slot).style.display = res.worn ? 'none' : '';
   setItemLabel(slot, st.item.name);
   setStat(`${slot}: ${st.item.name}`);
   fitScene();
@@ -804,15 +817,37 @@ for (const slot of WSLOTS){
     <div class="slotrow">
       <span class="slotlabel">${slot}</span>
       <input type="checkbox" id="vis_${slot}" checked title="visible (untick = hidden)"/>
+      <input id="q_${slot}" placeholder="search…" style="width:70px"
+             title="name, or an item DID 0x70…"/>
       <span class="slotitem" id="item_${slot}">—</span>
+      <select id="dye_${slot}" style="width:60px;display:none"><option value="">dye</option></select>
       <select id="at_${slot}" style="width:64px" title="attachment point">
         ${ATTACHMENTS.map(a=>`<option value="${a}"${a===WDEFAULT[slot]?' selected':''}>${a.replace('_',' ')}</option>`).join('')}
       </select>
       <button id="x_${slot}" title="clear">×</button>
-    </div>`;
+    </div>
+    <div class="hits" id="hits_${slot}" style="display:none"></div>`;
   slotsDiv.appendChild(row);
+  const q = row.querySelector('#q_'+slot), hits = row.querySelector('#hits_'+slot);
+  let timer = null;
+  q.oninput = ()=>{ clearTimeout(timer); timer = setTimeout(async ()=>{
+    if (q.value.trim().length < 2){ hits.style.display='none'; return; }
+    const rs = await (await fetch(`/search?q=${encodeURIComponent(q.value.trim())}&slot=${slot}`)).json();
+    hits.innerHTML = rs.map((r,i)=>`<div data-i="${i}">${r.name}</div>`).join('') || '<div>(no hits)</div>';
+    hits.style.display = 'block';
+    for (const div of hits.children)
+      div.onclick = ()=>{ hits.style.display='none'; q.value='';
+        state[slot].item = {did: rs[+div.dataset.i].did, name: rs[+div.dataset.i].name};
+        setItemLabel(slot, state[slot].item.name);
+        composeWeapon(slot); updateHash(); };
+  }, 250); };
   row.querySelector('#x_'+slot).onclick = ()=>{ state[slot].item=null;
-    setItemLabel(slot,''); clearMesh(slot); updateHash(); };
+    setItemLabel(slot,''); clearMesh(slot);
+    row.querySelector('#dye_'+slot).style.display = 'none';
+    row.querySelector('#at_'+slot).style.display = '';
+    updateHash(); };
+  row.querySelector('#dye_'+slot).onchange = e=>{ state[slot].dye = e.target.value;
+    applySlotDye(slot); updateHash(); };
   row.querySelector('#vis_'+slot).onchange = e=>{ state[slot].visible = e.target.checked;
     if (state[slot].mesh) state[slot].mesh.visible = e.target.checked;
     dirty = true; updateHash(); };
@@ -1096,8 +1131,10 @@ outfitSel.onchange = async ()=>{
     for (const [s, v] of Object.entries(r.held || {})){
       state[s].item = {did: v.did, name: v.name};
       state[s].visible = v.visible !== false;
+      state[s].dye = v.dye || '';
       setItemLabel(s, v.name);
       const cb = document.getElementById('vis_' + s); if (cb) cb.checked = state[s].visible;
+      const dy = document.getElementById('dye_' + s); if (dy) dy.value = state[s].dye;
     }
     loadClipList(); composeFace();
     // await the composes: each one calls setStat when it lands, so a summary
@@ -1116,7 +1153,7 @@ outfitSel.onchange = async ()=>{
   } catch (e){ setErr('outfit: ' + e); }
   finally { opEnd(); }
 };
-loadToons();
+const toonsReady = loadToons();
 
 // ---- outfit state in the URL hash -----------------------------------------
 // The whole look (body, skin, per-slot item + dye, chosen clip) lives in
@@ -1129,6 +1166,10 @@ function updateHash(){
   const p = new URLSearchParams();
   p.set('body', bodyEl.value);
   p.set('skin', skinEl.value);
+  // the CHARACTER, not just the body: their chargen head/hair style and their
+  // skin/hair colours ride on this, so without it a reload restores the outfit
+  // onto a default-looking stranger
+  if (toonSel.value) p.set('toon', toonSel.value);
   if (clipSel.value) p.set('clip', clipSel.value);
   for (const s of [...SLOTS, ...WSLOTS]){
     const st = state[s];
@@ -1144,6 +1185,18 @@ async function applyHash(){
   const p = new URLSearchParams(h);
   hashRestoring = true;
   try {
+    // Restore the character FIRST: charStyles/charColors must be set before
+    // composeFace() runs below, or the face composes with style 0 and default
+    // colours and only corrects itself on the next unrelated change.
+    const wantToon = p.get('toon');
+    if (wantToon){
+      await toonsReady;                      // the roster may still be loading
+      const t = toons.find(x => x.dir === wantToon);
+      if (t){
+        toonSel.value = t.dir; fillOutfitSel();
+        charStyles = t.styles || {}; charColors = t.colors || {};
+      }
+    }
     if (p.get('body') && BODIES.includes(p.get('body'))) bodyEl.value = p.get('body');
     if (p.get('skin') && SKINS[p.get('skin')]) skinEl.value = p.get('skin');
     await loadClipList();
@@ -1166,19 +1219,22 @@ async function applyHash(){
       if (cb) cb.checked = vis;
     });
     await Promise.all(jobs);
-    // held items are not in the catalog, so no /item lookup: name = the DID
+    // held items: no /item lookup (name = the DID); value is hex[:dye][@at]
     for (const s of WSLOTS.filter(s => p.get(s))){
-      let [hex, at] = p.get(s).split(':')[0].split('@');
-      const vis = !hex.startsWith('!');
-      if (!vis) hex = hex.slice(1);
-      state[s].item = {did: parseInt(hex, 16), name: '0x' + hex.toUpperCase()};
+      const m = p.get(s).match(/^(!?)([0-9a-fA-F]+)(?::([^@]*))?(?:@(.*))?$/);
+      if (!m) continue;
+      const vis = !m[1];
+      state[s].item = {did: parseInt(m[2], 16), name: '0x' + m[2].toUpperCase()};
       state[s].visible = vis;
-      state[s].at = at || '';
+      state[s].dye = m[3] || '';
+      state[s].at = m[4] || '';
       setItemLabel(s, state[s].item.name);
       const cb = document.getElementById('vis_' + s);
       if (cb) cb.checked = vis;
+      const dy = document.getElementById('dye_' + s);
+      if (dy) dy.value = state[s].dye;
       const sel = document.getElementById('at_' + s);
-      if (sel && at) sel.value = at;
+      if (sel && m[4]) sel.value = m[4];
     }
   } finally { hashRestoring = false; }
   composeFace();
@@ -1191,7 +1247,7 @@ addEventListener('hashchange', ()=>{ if (!hashRestoring) applyHash(); });
 // dye dropdowns
 fetch('/dyes').then(r=>r.json()).then(t=>{
   dyeNames = Object.keys(t).sort();
-  for (const slot of SLOTS){
+  for (const slot of [...SLOTS, ...WSLOTS]){
     const el = document.getElementById('dye_'+slot);
     el.innerHTML = '<option value="">dye</option>' + dyeNames.map(n=>`<option>${n}</option>`).join('');
   }

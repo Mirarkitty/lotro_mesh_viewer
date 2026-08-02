@@ -102,14 +102,10 @@ def _compose_weapon():
     per slot)."""
     try:
         item = int(request.args.get("item"), 16)
-        body = request.args.get("body")
-        f, clip = api.compose_weapon(item, body,
+        f, clip = api.compose_weapon(item, request.args.get("body"),
                                      request.args.get("slot") or "MainHand",
                                      at=request.args.get("at") or None)
-        # worn (wearable-path) items dye but have a fixed game placement;
-        # true held props attach but (measured) never dye
-        return jsonify({"file": f, "clip_did": clip,
-                        "worn": bool(api._worn_app_for(item, body))})
+        return jsonify({"file": f, "clip_did": clip})
     except Exception as ex:
         return jsonify({"error": str(ex)[:200]}), 500
 
