@@ -104,6 +104,13 @@ mesh 0x0600D250
 ...
 ```
 
+**Held items (weapons, class items)** resolve through their own tree —
+name searches find them (`python3 explore.py 'axe of fate'`), and an item
+DID without a wardrobe map automatically routes to the
+[PhysObj chain](../weapons.md): PhysObj → template → skeleton → meshes,
+each mesh expandable with `--deep`. Held rows dedupe on name + PhysObj
+(they have no per-body bindings).
+
 Other starting points: `0x20…` dumps a whole wardrobe record entry by
 entry (with the items bound to each key), `0x30…` resolves a material's
 diffuse and lists every entry binding it, `0x31…`/`0x2B…` show the

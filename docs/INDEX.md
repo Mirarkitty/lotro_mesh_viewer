@@ -9,6 +9,7 @@
 | [shaders.md](shaders.md) | `0x2B` shader classification: alpha-test cutout vs. tint mask, dyeable, metallic |
 | [properties.md](properties.md) | The PropertiesSet format, the property dictionary, typed decode |
 | [wardrobe.md](wardrobe.md) | Item → worn-appearance record → per-race/sex mesh + material binding; sibling items and sleeve variants |
+| [weapons.md](weapons.md) | Held items (weapons, shields, class items): the `PhysObj` → `0x47` → `0x1F` → `0x04` geometry chain, attachment bones, and open gaps |
 | [dyes.md](dyes.md) | The dye system: floatCode model, dyeable-region detection, render math, palette extraction |
 | [hair-face.md](hair-face.md) | Head/hair/beard chargen selection, and headwear's hair-hiding mechanism |
 | [animation.md](animation.md) | Skeletons, animation clips, skin weights, walk-cycle identification |

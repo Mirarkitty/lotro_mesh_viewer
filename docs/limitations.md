@@ -108,9 +108,40 @@ See [mesh-format.md](mesh-format.md#known-gaps).
   part meshes, and materials into composite bodies/props) are structurally
   identified but not parsed. Lower priority than it once was, since the
   skeleton and a default face/hair/beard are now reachable through the
-  chargen (`0x47`) and skeleton (`0x04`) records directly — what `0x01`
-  records might still add is prop placement and possibly a real per-body
-  skin atlas.
+  chargen (`0x47`) and skeleton (`0x04`) records directly, and held-item
+  geometry through the separate `PhysObj` chain (see
+  [weapons.md](weapons.md)) — what `0x01` records might still add is prop
+  *placement* (the real drawn/sheathed weapon attach transforms, still
+  hand-tuned — see below) and possibly a real per-body skin atlas.
+
+### Weapons and held items
+Previously an open area (no geometry pipeline at all for weapons, shields,
+or class items); now **solved for the core chain** — see
+[weapons.md](weapons.md) for the full writeup, verified end to end on 9
+held items across two characters' outfits. What remains open:
+- **Real attach transforms are not read from the client files.** The
+  bone/rotation/offset used per attachment point is hand-tuned against a
+  rendered T-pose, not decoded game data — see
+  [weapons.md](weapons.md#open-gaps).
+- **Sheathed vs. drawn is not modelled.** A held item always renders at
+  one fixed, user-chosen attachment point; there's no automatic
+  switch between a stowed and an in-combat pose.
+- **Handedness/mirroring is verified for the specific weapons tested
+  (axes), not swept across weapon shapes generally** — an asymmetrically
+  modelled weapon could still look wrong when the same mesh is mirrored
+  onto the off-hand bone.
+- **Dyeable weapon/shield properties (the `0x1F` template's alternate
+  38-byte, parent+override form) are unimplemented** — this is presumed
+  to be the path shields need, since they dye like armour rather than
+  rendering as a fixed-material weapon, but it hasn't been built or
+  tested.
+- **One part-mesh type in a multi-mesh skeleton trailer — a shadow- or
+  billboard-style record — is not decodable** by `mesh_decode.py`; an
+  item whose trailer includes one of these renders with that part
+  missing.
+- **Auras are deliberately not rendered** (they resolve fine through the
+  same chain, but a tiny fx-mesh prop isn't worth showing standalone) —
+  a scope decision, not a resolution failure.
 
 ### Textures and materials
 - Whether the skin/cloth surface-DID routing rule (see
@@ -220,6 +251,7 @@ See [mesh-format.md](mesh-format.md#known-gaps).
 ## See also
 - [overview.md](overview.md) — the honest status summary this page expands on
 - [wardrobe.md](wardrobe.md) — the selector this page's off-by-one history lives downstream of
+- [weapons.md](weapons.md) — the held-item chain and its remaining gaps in detail
 - [mesh-format.md](mesh-format.md) — the sliver bug and decoder gaps
 - [textures.md](textures.md) — texture-atlas subtleties still unresolved
 - [shaders.md](shaders.md) — `0x2B` shader classification: what's resolved, and what's still open

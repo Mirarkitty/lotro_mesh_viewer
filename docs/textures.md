@@ -213,6 +213,7 @@ face-vs-hair reconciliation: **[shaders.md](shaders.md)**.
 ## See also
 - [mesh-format.md](mesh-format.md) — the mesh geometry a texture is mapped onto
 - [wardrobe.md](wardrobe.md) — how the correct material for a specific item is selected
+- [weapons.md](weapons.md#texture-binding) — the compact-surface small-int-key variant used by held-item surfaces
 - [dyes.md](dyes.md) — the dye tint applied on top of the diffuse's dyeable region
 - [shaders.md](shaders.md) — the `0x2B` shader classification: cutout vs. tint mask, metallic
 - [dat-format.md](dat-format.md) — DID type map (`0x40`/`0x41`/`0x30`/`0x31`/`0x2B`)

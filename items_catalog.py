@@ -1,5 +1,9 @@
 """items_catalog.py — sweep all item property records into a searchable catalog.
 
+Covers WEARABLES (items with an Item_WornAppearanceMapList; per-body rows with
+garment-presence flags) and HELD items (weapons/class items; held=True rows
+whose geometry resolves via weapon_resolve.py instead).
+
 Walks client_gamelogic.dat for 0x79 records (item properties live at
 itemDID + 0x09000000), parses each with propset, and writes one JSON line per
 item that has an Item_WornAppearanceMapList (i.e. wearables) to
@@ -49,9 +53,38 @@ def resolve_name(si):
                 pass
     return None
 
+# Inventory_DefaultSlot bits for HELD slots (wearable slots live in the low
+# byte, see SLOT_BITS in api_common). Observed: main-hand axe 0x10000,
+# ranged bow 0x40000; the rest of the range is labeled generically.
+HELD_SLOT_BITS = {0x10000: "MainHand", 0x20000: "OffHand", 0x40000: "Ranged",
+                  0x80000: "Held", 0x100000: "Held", 0x200000: "Held",
+                  0x400000: "Held", 0x800000: "Held"}
+
 def item_row(props_did, props):
     ml = props.get("Item_WornAppearanceMapList")
-    if not ml: return None
+    if not ml:
+        # Held item (weapon/class item)? No worn-appearance map, but a
+        # PhysObj and a held-range default slot. Geometry resolves through
+        # the separate PhysObj chain (weapon_resolve.py, docs/weapons.md),
+        # so these rows carry held=True and no bodies.
+        slot = props.get("Inventory_DefaultSlot") or 0
+        held_bits = slot & 0xFFF0000
+        if props.get("PhysObj") and held_bits:
+            hs = next((n for b, n in HELD_SLOT_BITS.items() if held_bits & b),
+                      "Held")
+            return dict(
+                did=props_did - propset.DBPROPERTIES_OFFSET,
+                name=resolve_name(props.get("Name")),
+                held=True, held_slot=hs,
+                item_class=props.get("Item_Class"),
+                quality=props.get("Item_Quality"),
+                level=props.get("Item_Level"),
+                slot=slot,
+                equip_cat=props.get("Item_EquipmentCategory"),
+                icon=props.get("Icon_Layer_ImageDID"),
+                physobj=props.get("PhysObj"),
+                bodies=[])
+        return None
     bodies = []
     for _n, e in ml:
         bodies.append(dict(species=e.get("Item_SpeciesOfWearer"),
@@ -144,13 +177,13 @@ def sweep(out_path=None):
         except Exception:
             n_fail += 1
         if i % 20000 == 0:
-            print("  %d/%d  parsed=%d wearable=%d fail=%d"
+            print("  %d/%d  parsed=%d items=%d fail=%d"
                   % (i, len(dids), n_ok, len(rows), n_fail), flush=True)
     n_render = augment_presence(rows)
     with open(out_path, "w") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
-    print("DONE parsed=%d wearable=%d fail=%d renderable=%d -> %s"
+    print("DONE parsed=%d items=%d fail=%d renderable-wearables=%d -> %s"
           % (n_ok, len(rows), n_fail, n_render, out_path))
 
 if __name__ == "__main__":

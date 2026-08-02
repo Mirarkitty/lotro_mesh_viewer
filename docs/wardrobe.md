@@ -83,7 +83,7 @@ record families. Observed so far, per family:
 | legs (section type 4) | `0x10000003` | — | — (same value as a stub tag in the chest family) |
 
 Head-slot records use their own tag vocabulary entirely — see
-[hair-face.md](hair-face.md#head-slot-wardrobe-side). **Distinguish stub
+[hair-face.md](hair-face.md#head-slot-items-wardrobe-side). **Distinguish stub
 parts by on-disk mesh size (roughly under 2 KB), not by tag value alone.**
 
 ### Dye variants come for free
@@ -351,5 +351,6 @@ A selector built on this format typically exposes:
 - [hair-face.md](hair-face.md) — the head-slot family's own tag vocabulary and stub mechanism
 - [shaders.md](shaders.md) — what the shader, not the part tag, decides about how a part's texture alpha renders
 - [dyes.md](dyes.md) — the per-block `q` dye-floatCode connection
+- [weapons.md](weapons.md) — the parallel chain held items (weapons, class items) use instead of this one
 - [limitations.md](limitations.md) — remaining gaps downstream of the selector
 - [scripts/wearable2.md](scripts/wearable2.md), [scripts/selector.md](scripts/selector.md) — reference implementations

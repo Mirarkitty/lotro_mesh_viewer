@@ -72,9 +72,12 @@ Every arrow above has a corresponding decoder script (see
 The **container, compression, mesh geometry, texture format, item→body→
 appearance property chain, and wardrobe selector are all solved.** Rigging
 (skeletons, animation clips, skin weights) also now works end-to-end for a
-posed, animated render. What remains open is mostly about *coverage* and
-*polish* rather than fundamental format questions — see
-[limitations](limitations.md) for the honest list.
+posed, animated render. **Held items (weapons, class items) resolve
+through a separate, now-solved chain** — item → `PhysObj` → mesh, not
+through the wardrobe path above — see [weapons.md](weapons.md). What
+remains open is mostly about *coverage* and *polish* rather than
+fundamental format questions — see [limitations](limitations.md) for the
+honest list.
 
 ## Status summary
 
@@ -93,6 +96,7 @@ posed, animated render. What remains open is mostly about *coverage* and
 | Dye system (floatCode model, alpha-mask render math) | **Proven**, palette partially extracted | [dyes.md](dyes.md) |
 | Head / hair / beard chargen selection | **Proven** | [hair-face.md](hair-face.md) |
 | Rigging (skeleton + skin weights → posed, animated body) | **Mostly working**; specific gaps remain | [animation.md](animation.md) |
+| Held items (weapons, class items): `PhysObj` → `0x47` → `0x1F` → `0x04` geometry chain, rigid-bound attachment | **Solved** for the core chain (9/9 items verified); attach transforms are hand-tuned, not client data | [weapons.md](weapons.md) |
 
 For the full open-problem list and the project's failure-mode log (several
 "solved" claims that turned out to be wrong and how that was caught), see
@@ -118,6 +122,7 @@ incidents.
 - [shaders.md](shaders.md) — `0x2B` shader classification: cutout vs. tint mask, metallic
 - [properties.md](properties.md) — the PropertiesSet format and property dictionary
 - [wardrobe.md](wardrobe.md) — worn-appearance records and the item selector
+- [weapons.md](weapons.md) — held items (weapons, class items): a separate geometry chain from the wardrobe one
 - [dyes.md](dyes.md) — the dye system
 - [hair-face.md](hair-face.md) — head/hair/beard chargen selection
 - [animation.md](animation.md) — skeletons, animation clips, skin weights

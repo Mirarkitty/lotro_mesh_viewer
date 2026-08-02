@@ -9,11 +9,11 @@ every function returns plain dicts/lists, no Flask objects anywhere. It is
 the glue layer between the data-layer modules ([datfile.py](datfile.md),
 [propset.py](propset.md), [wearable2.py](wearable2.md),
 [selector.py](selector.md), [tex_extract.py](tex_extract.md),
-[mesh_decode.py](mesh_decode.md), [compose.py](compose.md)) and the two
-HTTP servers: [`outfit_app.py`](outfit_app.md) (the multi-slot outfit
-composer) uses nearly all of it; the simpler single-item
-[viewer](viewer.md) (`app.py`) uses only the item-catalog/search/compose
-subset.
+[mesh_decode.py](mesh_decode.md), [compose.py](compose.md),
+[weapon_resolve.py](weapon_resolve.md)) and the two HTTP servers:
+[`outfit_app.py`](outfit_app.md) (the multi-slot outfit composer) uses
+nearly all of it; the simpler single-item [viewer](viewer.md) (`app.py`)
+uses only the item-catalog/search/compose subset.
 
 It covers four areas:
 
@@ -22,11 +22,13 @@ It covers four areas:
 2. **Animation clip listing** — candidate clip lists per body rig, built
    from prebuilt classifier data (motion filters, dedupe, quota selection).
 3. **LotroCompanion saved-outfit import** — reading a player's saved
-   character outfits and (optionally) their extracted chargen appearance.
+   character outfits and (optionally) their extracted chargen appearance,
+   including held items (weapons/class items).
 4. **Composition & texture baking** — cached calls into
    [compose.py](compose.md)/[charparts.py](charparts.md)/
-   [export_skinned.py](export_skinned.md) to produce skinned garment and
-   face meshes, plus dyed/skin-tinted texture baking.
+   [export_skinned.py](export_skinned.md)/
+   [weapon_resolve.py](weapon_resolve.md) to produce skinned garment,
+   face, and held-item meshes, plus dyed/skin-tinted texture baking.
 
 ## Catalog / search / sets / setmates
 
@@ -42,6 +44,7 @@ It covers four areas:
 | `weight_of` | `weight_of(equip_cat)` | `"light"`/`"medium"`/`"heavy"`/`None` from the `Item_EquipmentCategory` bitmask |
 | `item_row` | `item_row(item_did)` | one catalog row by DID, in the same shape `search` returns — used to restore an outfit from a URL hash without a name search |
 | `bodies_for` | `bodies_for(item_did)` | **live** (not catalog-cached) per-body renderability for one item |
+| `default_dye` | `default_dye(float_code)` | dye NAME for an `Item_ClothingColor` floatCode, or `None` |
 
 `search` and `setmates` both filter on `bodies[i]["present"]`, which is
 **not computed here** — it comes pre-baked from
@@ -50,6 +53,26 @@ that page). `bodies_for`, by contrast, recomputes presence live by parsing
 the item's `0x20` worn-appearance record on the spot — used where the
 catalog's cached flag isn't good enough (e.g. right after a catalog rebuild,
 or to double-check one item).
+
+Every catalog row (`_row`, what `search`/`setmates`/`item_row` return) also
+carries a `default_dye` field, resolved via `default_dye(row["clothing_color"])`.
+**Undyed and default are different things, and floatCode is where they
+part**: no dye in the palette has `floatCode 0.0` (the range is 0.01 Ered
+Luin Blue .. 0.80 Turquoise), so `0.0` — or the property being absent —
+means the item ships genuinely undyed, while any positive code is a real
+default dye the game applies on top of the base texture. Measured: a Forged
+Plated Hauberk carries `clothing_color 0.0` (undyed), an Exquisite Dress
+carries `0.1` (a real default dye). This is independent confirmation of the
+same undyed-**by-design** reading [../dyes.md](../dyes.md#a-near-opaque-case-plated-armour-barely-dyes-measured)
+reaches from the diffuse-alpha side for plated armour — two unrelated
+signals (dye-mask alpha coverage, and the item's own default-dye property)
+agreeing that some plated armour is meant to render undyed, not merely
+failing to dye. `default_dye` matches on a `0.005` tolerance rather than exact
+equality, since float32 storage wobbles a stored code slightly (`0.6`
+round-trips as `0.6000000238`) — the same rule `explore.dye_name` uses.
+The picker uses this to preselect an item's own default dye when it's first
+picked, rather than showing bare undyed cloth for an item that should ship
+colored.
 
 ## Animation clip listing
 
@@ -177,7 +200,7 @@ itemName colorCode color/>`). `itemId` is the item DID in **decimal**;
 |---|---|---|
 | `companion_base` | `companion_base()` | first `COMPANION_DIRS` entry that actually holds `toon-*/outfits.xml`, or `None` |
 | `companion_toons` | `companion_toons()` | `[{dir, name, server, cls, race, sex, level, body, styles, colors, current, outfits}]` for every character with an `outfits.xml` |
-| `companion_outfit` | `companion_outfit(toon, index)` | `{body, slots: {slot: {did, name, companion_name, dye, visible}}, skipped, missing}` for one saved outfit resolved against the catalog |
+| `companion_outfit` | `companion_outfit(toon, index)` | `{body, slots: {slot: {did, name, companion_name, dye, visible}}, held: {slot: {did, name, visible}}, skipped, missing}` for one saved outfit resolved against the catalog |
 
 `COMPANION_DIRS = [$LOTRO_COMPANION_DIR, ~/.lotrocompanion/data/characters]`
 — `companion_base` requires a directory to actually **hold** outfit data,
@@ -185,12 +208,20 @@ not merely exist: since the server process runs as a different OS user than
 the player, a bare `~/.lotrocompanion` existence check would resolve to the
 service account's own empty profile and shadow the real one.
 
-`COMPANION_SLOTS` maps LotroCompanion's slot names (`HEAD`, `SHOULDER`,
-`BREAST`, `BACK`, `HANDS`, `LEGS`, `FEET`) to this project's slot names;
-everything else (`MAIN_MELEE`, `RANGED`, `*_AURA`, `CLASS_ITEM`) is a
-weapon/effect with no wearable mesh and is reported in `skipped` rather than
-silently dropped. `companion_outfit` also reports `missing` — a worn
-`itemId` that isn't in the catalog at all.
+`COMPANION_SLOTS` maps LotroCompanion's wearable slot names (`HEAD`,
+`SHOULDER`, `BREAST`, `BACK`, `HANDS`, `LEGS`, `FEET`) to this project's
+slot names. `COMPANION_HELD_SLOTS` separately maps the held-item slots
+(`MAIN_MELEE`→`MainHand`, `OTHER_MELEE`→`OffHand`, `RANGED`→`Ranged`,
+`CLASS_ITEM`→`ClassItem`) — these have no wearable `0x20` record, so they
+never go through `slots`/`missing`; they're rendered via
+[`compose_weapon`](#compose_weapon--held-items-weaponsclass-items) instead
+and returned under the outfit's own `held` key
+(`{did, name, visible}`, no catalog lookup — held items aren't in
+`items_catalog.jsonl`, so `name` is LotroCompanion's own saved item name).
+Everything else (`*_AURA`) stays in `skipped` — effects with no geometry
+worth rendering standalone, see [../weapons.md](../weapons.md#open-gaps).
+`companion_outfit` also reports `missing` — a worn wearable `itemId` that
+isn't in the catalog at all.
 
 ### Character appearance (optional)
 
@@ -220,6 +251,7 @@ characters.
 | `compose_cached` | `compose_cached(item_did, app_did)` | decoded/ file name for a cached (or freshly built) [compose.py](compose.md) call |
 | `compose_skinned` | `compose_skinned(item_did, app_did)` | `(file name, default clip DID)` — compose plus per-vertex skin data + skeleton |
 | `compose_face` | `compose_face(label, head_item=None, head_app=None, hands=False, feet=False, head_style=0, hair_style=0)` | `(file name, default clip DID)` — a skinned default head/hair (and optionally bare hands/feet) for a body |
+| `compose_weapon` | `compose_weapon(item_did, label, slot="MainHand", at=None)` | `(file name, default clip DID)` — a held item (weapon/class item) rigid-bound to an attachment bone |
 
 `compose_skinned` resolves the body from `item_did`'s worn-appearance map
 (erroring if `app_did` isn't actually one of the item's bodies), looks up
@@ -252,6 +284,47 @@ skin tint. Cached at `decoded/animF_<body>_h<style>_<style>_<mode>[_hands]
 
 `CHARGEN_KEY` maps this module's body labels (`"Man-M"`, …) to
 [charparts.py](charparts.md)'s `CHARGEN` dict keys (`"man_m"`, …).
+
+### `compose_weapon` — held items (weapons/class items)
+
+`compose_weapon` is a separate chain from the wardrobe-based
+`compose_skinned`/`compose_face` above: it resolves the item's meshes via
+[`weapon_resolve.resolve_weapon`](weapon_resolve.md) (item → `PhysObj` →
+`0x47` entity → `0x1F` template → `0x04` skeleton trailer → `0x06` mesh
+DIDs — see [../weapons.md](../weapons.md) for the full format), then
+**rigid-binds** every vertex to one attachment bone
+(`charparts._append_mesh(..., rigid_bone=bidx)`, the same mechanism used
+for helm/head parts) and bakes the vertices into model space at that
+bone's bind-pose transform, so the mesh follows the bone through any clip
+without needing per-frame skin weights. Output is the same JSON shape as
+`compose_skinned` (clip payload **not** embedded, same rationale as
+above); cached at `decoded/animW_<item>_<body>_<at>.json`.
+
+```python
+ATTACH = {
+    "hand_r": {"bone": "rweapon",   "rot": (0, 0, 0),   "off": (0, 0, 0)},
+    "hand_l": {"bone": "lweapon",   "rot": (0, 180, 0), "off": (0, 0, 0)},
+    "hip_l":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (-0.18, 0.05, 0)},
+    "hip_r":  {"bone": "hipgirdle", "rot": (180, 0, 0), "off": (0.18, 0.05, 0)},
+    "back":   {"bone": "midback",   "rot": (90, 25, 0), "off": (0, -0.15, 0.15)},
+}
+HELD_ATTACH = {"MainHand": "hand_r", "OffHand": "hand_l",
+               "Ranged": "back", "ClassItem": "hip_l"}
+```
+
+`ATTACH` maps an attachment name to a bone plus a local pre-transform
+(rotate `(x, y, z)` degrees applied in that order, then offset, both in
+bone space before the bind-pose bake) — hand-tuned against a rendered
+T-pose, not read from the client's own attach data (unresolved, see
+[../weapons.md](../weapons.md#open-gaps)). `HELD_ATTACH` is the
+default attachment per composer slot; `compose_weapon`'s `at` parameter
+overrides it (the outfit composer exposes this as a per-slot dropdown —
+see [../outfit-composer.md](../outfit-composer.md)). `_bone_bind_world`
+computes a bone's bind-pose world transform by walking its parent chain
+through the rig's local `t`/`q`/`s` (translation/quaternion/scale) data —
+the same composition [`export_skinned.py`](export_skinned.md)'s
+`skeleton_bones` output describes, minus the viewer's Z-up display
+rotation.
 
 ## `slot_overrides` + `OVERRIDE_TAGS` + the bare-part tables
 
@@ -374,6 +447,10 @@ never be tinted.
   require.
 - [export_skinned.py](export_skinned.md) — skeleton/clip export
   `compose_skinned`/`clip_cached`/`compose_face` call into.
+- [weapon_resolve.py](weapon_resolve.md) — the held-item chain
+  `compose_weapon` calls into via `resolve_weapon`.
+- [../weapons.md](../weapons.md) — the full held-item format writeup:
+  geometry chain, dead ends, attachment, and open gaps.
 - [../animation.md](../animation.md) — the gait/idle/dup classification
   concepts `gait_flags.json`/`idle_flags.json`/`dup_groups_*.json` encode.
 - [../hair-face.md](../hair-face.md) — the three-state hair mechanism

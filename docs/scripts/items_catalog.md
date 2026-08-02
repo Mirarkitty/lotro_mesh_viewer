@@ -26,6 +26,17 @@ data, which this toolkit doesn't handle at all), see the
 [LotroCompanion](https://github.com/LotroCompanion) project's `lotro-data` /
 `lotro-items-db`.
 
+The sweep covers **wearables** (rows with per-body bindings and presence
+flags) and **held items** — weapons and class items, recognized by a
+`PhysObj` plus a held-range `Inventory_DefaultSlot` bit (`0x10000`+) with
+no `Item_WornAppearanceMapList`. Held rows carry `held: true`, a
+`held_slot` label (MainHand/OffHand/Ranged/Held) and their `physobj` DID;
+their geometry resolves through
+[weapon_resolve.py](weapon_resolve.md) ([../weapons.md](../weapons.md)),
+not the wardrobe chain, and they have no `bodies`/presence flags (so the
+composer's wearable search ignores them; [explore.py](explore.md) finds
+them by name).
+
 ## CLI usage
 
 ```

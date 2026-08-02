@@ -96,13 +96,22 @@ framings" section for the general rule.
 
 `_compact_surface_materials(raw)` parses the modern, compact `0x31` record
 layout exactly:
-`[self DID 0x31][shader 0x2B][slot key 0x10][u32 nmat][nmat × 0x30 material][u16 flags]`
+`[self DID 0x31][shader 0x2B][slot key][u32 nmat][nmat × 0x30 material][u16 flags]`
 (22 bytes for `nmat=1`). This turned out to be **the** `0x31` format, old
 and new alike — records that looked like ~1KB "legacy 2-pass surfaces" in
 earlier notes were actually 22-byte true records over-read by `read_asset`
 into 1KB of neighbour-record garbage. For the newest-generation items (meshes
 in `client_mesh_aux_1.datx`, `0x20` wearable entries with zero material
 groups), this surface→material link is the **only** texture binding.
+
+The third field is a `0x10`-tagged **slot key** on garment surfaces, but a
+small plain integer (seen: `1`) on held-item surfaces (weapons/class
+items) — same 22-byte layout otherwise, just a different convention for
+that one field. `_compact_surface_materials` accepts both:
+`(key >> 24) == 0x10` or `key <= 0xFF`; anything else is rejected as not
+this format. Found while adding weapon texture support — see
+[../weapons.md](../weapons.md#texture-binding) for why weapon surfaces
+carry the small-int form.
 
 `diffuse_for_surface(surf_did)` tries the compact-format parse first, walking
 each referenced material through `material_diffuse`. Only if that fails does
@@ -169,6 +178,8 @@ selection; picking the exact entry for a specific item needs the item's own
 ## See also
 
 - [../textures.md](../textures.md) — full DID-evidence writeup and known traps.
+- [../weapons.md](../weapons.md#texture-binding) — the held-item corner
+  case of the compact `0x31` surface format above.
 - [mesh_decode.py](mesh_decode.md) — consumes `mesh_textures` to attach diffuses to decoded groups.
 - [selector.py](selector.md) — uses `material_diffuse` for the exact per-item selection this module can't do alone.
 - [wearable2.py](wearable2.md), [compose.py](compose.md) — the finer-grained per-entry material binding this module's `0x20` parsing is coarser than.

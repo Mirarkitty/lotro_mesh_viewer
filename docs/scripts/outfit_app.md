@@ -14,7 +14,12 @@ The repo's simpler single-item [viewer](viewer.md) (`app.py`) stays on port
 8722 and covers rendering one item on one body at a time; `outfit_app.py`
 composes a full multi-slot outfit (every equipment slot at once, dyes per
 slot, saved-outfit import, animation) on the same underlying data-layer
-modules and the same `decoded/`/`textures/` disk caches.
+modules and the same `decoded/`/`textures/` disk caches. Held items
+(weapons, class items) are a separate `/compose_weapon` route on top of the
+same wearable-slot machinery — see
+[../weapons.md](../weapons.md) for the format and
+[api_common.md](api_common.md#compose_weapon--held-items-weaponsclass-items)
+for the resolution/attachment logic behind it.
 
 ## Running it
 
@@ -55,6 +60,7 @@ as [viewer.md](viewer.md)'s `app.py`.
 | `/bodies` | GET | `item` (hex) | `[{app, key, present, label}]` — `api.bodies_for(item)` (live, not catalog-cached) |
 | `/compose` | GET | `item`, `app` (hex) | `{file, overrides}` — `api.compose_cached` + `api.slot_overrides`; `{error}` + 500 on failure |
 | `/compose_skinned` | GET | `item`, `app` (hex) | `{file, clip_did, overrides}` — `api.compose_skinned` + `api.slot_overrides`; `{error}` + 500 |
+| `/compose_weapon` | GET | `item` (hex), `body`, `slot` (`MainHand`/`OffHand`/`Ranged`/`ClassItem`, default `MainHand`), `at` (`hand_r`/`hand_l`/`hip_l`/`hip_r`/`back`, optional — defaults per slot) | `{file, clip_did}` — a held item rigid-bound to the body's attachment bone, `api.compose_weapon`; `{error}` + 500 |
 | `/compose_face` | GET | `body`, `head_item`/`head_app` (hex, optional), `hands` (`1`/`0`), `feet` (`1`/`0`), `head_style`, `hair_style` | `{file, clip_did}` — `api.compose_face`; `{error}` + 500 |
 | `/clips` | GET | `body`, `riding` (`hide`/`only`), `dedupe` (`1`/`0`, default `1`), `motion` | JSON array of clip rows — `api.clips_for_body`; `{error}` + 500 |
 | `/clip` | GET | `did` (int, base auto-detected), `body` | decoded clip JSON — `api.clip_cached`; `{error}` + 500 |
@@ -96,6 +102,8 @@ foot/gait classification (`walk`/`run`/`fwd`/`back`/`strafe`/`standing`/
 - [api_common.py](api_common.md) — every function backing these routes.
 - [charparts.py](charparts.md) — the chargen compositor `/compose_face`
   calls into via `api.compose_face`.
+- [weapon_resolve.py](weapon_resolve.md) / [../weapons.md](../weapons.md) —
+  the held-item chain `/compose_weapon` calls into.
 - [items_catalog.py](items_catalog.md) — builds `items_catalog.jsonl`,
   required by `/search`, `/sets`, `/setmates`.
 - [viewer.md](viewer.md) — the single-item subset of this server (`app.py`,

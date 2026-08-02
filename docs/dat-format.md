@@ -152,11 +152,12 @@ per-type serial. Types relevant to this documentation set:
 | `client_general.dat` | `0x30` | ~24,000 | Material (references `0x40` mip-chain slots) |
 | `client_general.dat` | `0x31` | ~13,700 | Surface / render-property (per-submesh, references `0x2B`/`0x30`) |
 | `client_general.dat` | `0x40` | ~80,000 | Texture mip-chain (ordered list of `0x41` DIDs at successive resolutions) |
-| `client_general.dat` | `0x04` | ~28,500 | **Havok skeletons** (`hkaSkeleton`/`hkaBone`), named bone hierarchies — see [animation.md](animation.md) |
+| `client_general.dat` | `0x1F` | ~29,000 | Held-item template: one per visual object, its last `u32` references a `0x04` skeleton/mesh-trailer record — see [weapons.md](weapons.md) |
+| `client_general.dat` | `0x04` | ~28,500 | **Havok skeletons** (`hkaSkeleton`/`hkaBone`), named bone hierarchies — see [animation.md](animation.md); on a held-item `0x1F` template's target, a degenerate case of this same record type carries a `[u8 count][count x u32]` mesh-DID trailer instead of being used as a real character skeleton, see [weapons.md](weapons.md) |
 | `client_surface.dat` / `client_highres.dat` | `0x41` | — | DXT-compressed texture payloads, see [textures.md](textures.md) |
 | `client_gamelogic.dat` | `0x70` / `0x79` | ~380,000 each | Item index/`WState` (`0x70`) paired with its PropertiesSet (`0x79` = `0x70` + `0x09000000`) |
 | `client_gamelogic.dat` | `0x34000000` | 1 (master) | The property-ID → name+type dictionary, see [properties.md](properties.md) |
-| `client_gamelogic.dat` | `0x47` | ~40,000 | Avatar chargen / entity records — see [hair-face.md](hair-face.md) |
+| `client_gamelogic.dat` | `0x47` | ~40,000 | Avatar chargen / entity records — see [hair-face.md](hair-face.md); the same type tag is also used for a held item's `PhysObj` entity record (class tag, template ref, render-hint properties — no geometry), see [weapons.md](weapons.md) |
 | `client_gamelogic.dat` | `0x0C` | ~29,000 | Other game entities/props |
 
 `client_cell_*.dat` (terrain) and `client_local_*.dat` (UI/quest/item strings,
@@ -168,5 +169,6 @@ used incidentally — see [animation.md](animation.md) for emote name lookups).
 - [overview.md](overview.md) — project status and end-to-end pipeline
 - [mesh-format.md](mesh-format.md) — what's inside a `0x06` record once decompressed
 - [textures.md](textures.md) — what's inside a `0x41` record
+- [weapons.md](weapons.md) — the `0x47`/`0x1F`/`0x04` held-item chain
 - [properties.md](properties.md) — the `0x79` PropertiesSet format, read via `read_content`
 - [scripts/datfile.md](scripts/datfile.md) — the reference implementation

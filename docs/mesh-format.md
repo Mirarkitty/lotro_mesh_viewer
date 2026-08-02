@@ -200,6 +200,7 @@ tiling meshes and there is no better stride to fall back to.
 - [dat-format.md](dat-format.md) — the container/decompression this reads from
 - [textures.md](textures.md) — resolving a decoded mesh's diffuse texture
 - [wardrobe.md](wardrobe.md) — which mesh DID to decode for a given item
+- [weapons.md](weapons.md) — resolving a held-item mesh DID, via a different chain than wardrobe items
 - [animation.md](animation.md) — skin weights, bone indices, and posing a decoded mesh
 - [scripts/mesh_decode.md](scripts/mesh_decode.md) — the reference implementation
 - [limitations.md](limitations.md) — decoder gaps and the failure-mode log

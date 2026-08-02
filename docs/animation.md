@@ -104,7 +104,8 @@ Representative bone names seen across character rigs: `root`, `parent`,
 Two details matter for a renderer:
 
 1. **`lweapon`/`rweapon` are weapon attach points** — where cosmetic
-   weapons hang.
+   weapons hang. See [weapons.md](weapons.md) for how a held item's mesh
+   is resolved and rigid-bound to these (and other) attachment bones.
 2. **Dynamic cloth bones exist**: cape chains (base/mid/tip per side),
    skirt-front chains, and a dedicated `physics` bone. This is how cloaks
    and dress skirts move in-game, and it means a purely static bind-pose
@@ -413,6 +414,7 @@ relying on this name table at all.
 ## See also
 - [mesh-format.md](mesh-format.md) — skin weights and the bone-palette region in the vertex format
 - [wardrobe.md](wardrobe.md) — mesh *selection*, a separate layer from animation
+- [weapons.md](weapons.md#attachment-bones-rigid-binding-grip-overlay) — rigid-binding a held item to the `rweapon`/`lweapon` attach bones named below
 - [hair-face.md](hair-face.md) — skinning a composed head/hair/beard set
 - [dat-format.md](dat-format.md) — the `0x04`/`0x05` DID type map
 - [scripts/api_common.md](scripts/api_common.md) — `clips_for_body`, which consumes the shipped `gait_flags.json`/`idle_flags.json`/`stance_flags.json`/`foot_flags.json`/`dup_groups_*.json`/`clip_names.json` classifier-output files this page's methods produced

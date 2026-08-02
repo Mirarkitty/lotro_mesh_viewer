@@ -434,13 +434,52 @@ def find_users(pred, what):
 
 # ---- per-type digs ----------------------------------------------------------
 
+def dig_held(did, row, deep=False):
+    """A held item (weapon/class item): the PhysObj chain, not the wardrobe
+    one (docs/weapons.md)."""
+    import weapon_resolve as wr
+    name = (row.get("name") if row else None) or "(not in catalog)"
+    slot = (" [%s]" % row["held_slot"]) if row and row.get("held_slot") else ""
+    root = Node("held item %s  %s%s" % (_h(did), name, slot))
+    try:
+        r = wr.resolve_weapon(did)
+    except Exception as ex:
+        root.add("weapon chain FAILED: %s" % str(ex)[:100])
+        return root
+    ch = root.add("PhysObj chain (item -> entity -> template -> skeleton -> meshes)")
+    ch.add("PhysObj  %s  (0x47 entity record)" % _h(r["physobj"]))
+    ch.add("template %s  (0x1F; its last u32 names the skeleton)" % _h(r["template"]))
+    ch.add("skeleton %s  (0x04; mesh DIDs in its trailer)" % _h(r["skeleton"]))
+    for m in r["meshes"]:
+        where = r["mesh_where"].get(m)
+        n = root.add("mesh %s  (%s)" % (
+            _h(m), {"mesh": "client_mesh.dat", "aux": "client_mesh_aux_1.datx",
+                    "ABSENT": "NOT SHIPPED"}.get(where, where)))
+        if where != "ABSENT":
+            if deep:
+                mesh_deep_node(n, m)
+            else:
+                size, _present = mesh_entry(m)
+                if size is not None:
+                    n.add("%d B on disk (use --deep for submeshes)" % size)
+    return root
+
+
 def dig_item(did, deep=False):
     import selector
     row = next((r for r in catalog() if r["did"] == did), None)
+    if row is not None and row.get("held"):
+        return dig_held(did, row, deep=deep)
     name = (row.get("name") if row else None) or "(not in catalog)"
     root = Node("item %s  %s" % (_h(did), name))
     try:
         res = selector.resolve_item(did)
+    except ValueError as ex:
+        if "Item_WornAppearanceMapList" in str(ex):
+            # not a wearable — try the held-item chain before giving up
+            return dig_held(did, row, deep=deep)
+        root.add("resolve FAILED: %s" % str(ex)[:100])
+        return root
     except Exception as ex:
         root.add("resolve FAILED: %s" % str(ex)[:100])
         return root
@@ -614,8 +653,9 @@ def main():
     rows = []
     dupes = []
     for r in hits:
-        sig = (r.get("name"),
-               tuple(sorted((b["app"], b["key"]) for b in r["bodies"])))
+        # held rows have no bodies — their identity is the PhysObj chain
+        sig = (r.get("name"), ("held", r.get("physobj")) if r.get("held")
+               else tuple(sorted((b["app"], b["key"]) for b in r["bodies"])))
         if sig in seen:
             dupes.append((r, seen[sig]))
             continue

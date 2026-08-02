@@ -147,6 +147,30 @@ resolved from static data alone — see [shaders.md](shaders.md#open) for the
 separate, unverified hypothesis about a specular/gloss map possibly hiding
 in the same high-alpha region.
 
+## An item's own default dye: `Item_ClothingColor`
+
+Separate from the palette in the section above, an item's own
+PropertiesSet can carry `Item_ClothingColor` — a floatCode in the same
+scale as the palette, naming the dye the item ships with by default
+(`default_dye(float_code)` in [api_common.py](scripts/api_common.md);
+matched against the palette on the same `0.005` tolerance as the render
+model above, to absorb float32 storage wobble). **No dye in the palette
+has floatCode `0.0`** (the range is 0.01 Ered Luin Blue .. 0.80
+Turquoise), so `0.0` — or the property being absent — reads as
+*genuinely undyed*, distinct from a positive code, which names a real
+default dye the game applies. Measured on two items: a Forged Plated
+Hauberk carries `0.0` (undyed), an Exquisite Dress carries `0.1` (a real
+default dye).
+
+This is a second, independent signal pointing the same direction as the
+near-opaque alpha-mask measurement above: a plated garment with almost no
+tintable alpha *and* an item property that says "ships undyed" is best
+read as undyed **by design**, not as two unrelated symptoms of the same
+unconfirmed bug. Neither signal alone rules out a content gap, but two
+independent measurements agreeing strengthens that reading. The outfit
+composer's per-slot picker preselects an item's `default_dye` when it's
+first picked, rather than always starting from bare undyed cloth.
+
 ## Remaining work
 
 - Extract the 16 missing festival dye RGBs from their individual wiki
@@ -171,4 +195,5 @@ in the same high-alpha region.
 - [overview.md](overview.md) — where dyeing fits in the overall pipeline
 - [wardrobe.md](wardrobe.md) — the wardrobe-entry `q`-block dye-variant connection
 - [shaders.md](shaders.md) — shader classification for the near-opaque plated-armour case above, and the open shine/specular hypothesis
+- [scripts/api_common.md](scripts/api_common.md) — `default_dye`, the `Item_ClothingColor` lookup behind the section above
 - [limitations.md](limitations.md) — festival-dye gap and remaining picker work

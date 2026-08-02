@@ -7,9 +7,9 @@ implement, see the parent [docs/](../) directory
 ([overview.md](../overview.md), [dat-format.md](../dat-format.md),
 [mesh-format.md](../mesh-format.md), [textures.md](../textures.md),
 [shaders.md](../shaders.md), [properties.md](../properties.md),
-[wardrobe.md](../wardrobe.md), [dyes.md](../dyes.md),
-[animation.md](../animation.md), [hair-face.md](../hair-face.md),
-[limitations.md](../limitations.md)).
+[wardrobe.md](../wardrobe.md), [weapons.md](../weapons.md),
+[dyes.md](../dyes.md), [animation.md](../animation.md),
+[hair-face.md](../hair-face.md), [limitations.md](../limitations.md)).
 
 | Script | Role | Docs |
 |---|---|---|
@@ -20,6 +20,7 @@ implement, see the parent [docs/](../) directory
 | `shaders.py` | 0x2B shader classification (alpha-test cutout vs. tint mask, dyeable, metallic) + CLI | [shaders.md](shaders.md) |
 | `propset.py` | Turbine PropertiesSet deserializer + property dictionary + CLI | [propset.md](propset.md) |
 | `selector.py` | Item → per-body garment mesh/material selector + CLI | [selector.md](selector.md) |
+| `weapon_resolve.py` | Held item (weapon/class item) → mesh DIDs via the `PhysObj` → `0x47` → `0x1F` → `0x04` chain + CLI | [weapon_resolve.md](weapon_resolve.md) |
 | `wearable2.py` | Strict sequential 0x20 worn-appearance record parser + CLI | [wearable2.md](wearable2.md) |
 | `compose.py` | Composes one wearable entry (item × body) into a textured viewer JSON + CLI | [compose.md](compose.md) |
 | `items_catalog.py` | Sweeps all items into a searchable `items_catalog.jsonl`, then bakes per-body presence flags + CLI | [items_catalog.md](items_catalog.md) |
@@ -55,6 +56,8 @@ For someone new to the codebase, roughly following the pipeline is easiest:
     verifying the result (single-item subset).
 11. [charparts.py](charparts.md) — chargen head/hair/beard, the last piece
     of geometry needed for a full avatar.
-12. [api_common.py](api_common.md) / [outfit_app.py](outfit_app.md) — the
+12. [weapon_resolve.py](weapon_resolve.md) — held items (weapons/class
+    items), a separate chain from garments (see [../weapons.md](../weapons.md)).
+13. [api_common.py](api_common.md) / [outfit_app.py](outfit_app.md) — the
     full multi-slot outfit composer that ties every previous stage together
     (see also [../outfit-composer.md](../outfit-composer.md)).
