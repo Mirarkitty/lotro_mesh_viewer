@@ -9,5 +9,8 @@ no image files were extracted from the game as-is.
 - `outfit-snowdusted.png` / `outfit-snowdusted-dyed.png` — the *Snow-dusted
   Travelling* set (5 items) composed, skinned and dyed on an Elf body by the
   full outfit-composer development tree built on these same modules.
+- `outfit-loader.png` — the composer with a LotroCompanion saved outfit
+  loaded (toon Tawar, outfit #1), UI panel included on purpose: it
+  illustrates the loader controls (see ../outfit-composer.md).
 
 Regenerate after decoder/viewer improvements and commit the new PNGs.

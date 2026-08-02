@@ -13,6 +13,7 @@
 | [hair-face.md](hair-face.md) | Head/hair/beard chargen selection, and headwear's hair-hiding mechanism |
 | [animation.md](animation.md) | Skeletons, animation clips, skin weights, walk-cycle identification |
 | [limitations.md](limitations.md) | Open problems and the project's verification-discipline failure-mode log |
+| [outfit-composer.md](outfit-composer.md) | The full-avatar composer walkthrough: the saved-outfit loader (LotroCompanion) and which module each control exercises |
 | [scripts/](scripts/) | Per-tool reference documentation (container access, mesh decode, texture extraction, property decode, item selection) |
 
 Start with [overview.md](overview.md) for the big picture, or jump straight

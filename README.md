@@ -15,6 +15,17 @@ texture formats but has no mesh parser, and the LOTRO Companion project's
 "Champollion" proof-of-concept was
 [announced but never released](https://github.com/LotroCompanion/lotro-companion/issues/124).
 
+![The outfit composer: a saved character outfit loaded and rendered](docs/img/outfit-loader.png)
+
+*Every researched feature in one screenshot: a character's saved outfit
+loaded from [LotroCompanion](https://github.com/LotroCompanion) data (the
+"toon" dropdown), each slot resolved to its per-body garment mesh, textures
+and per-slot dyes applied (Red/Crimson here), hair and an alpha-cutout
+headpiece rendered by shader classification, and the whole avatar skinned to
+a skeleton with animation playback. See
+[the outfit-composer walkthrough](docs/outfit-composer.md) for how each
+control maps to the modules in this repo.*
+
 | ![Snow-dusted Travelling set composed on an Elf body](docs/img/outfit-snowdusted.png) | ![The same outfit dyed Ered Luin Blue](docs/img/outfit-snowdusted-dyed.png) |
 |:--:|:--:|
 | The *Snow-dusted Travelling* set — five items resolved, composed and skinned onto an Elf body, mid walk cycle | The same outfit with the *Ered Luin Blue* dye applied: dyeable cloth tints, snow/fur/metal regions don't |
