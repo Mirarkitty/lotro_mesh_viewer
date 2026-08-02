@@ -18,9 +18,10 @@ library modules ([selector.py](selector.md), [wearable2.py](wearable2.md),
 [mesh_decode.py](mesh_decode.md), [tex_extract.py](tex_extract.md),
 [shaders.py](shaders.md)) from code.
 
-The tree is **deduplicated**: the first expansion of any entity (material,
-surface, texture, decoded mesh, wardrobe entry) is tagged `[@N]`, and every
-later occurrence prints `-> @N` instead of repeating the subtree — one
+The tree is **deduplicated**: when an entity (material, surface, texture,
+decoded mesh, wardrobe entry) occurs again, its first expansion is tagged
+`[@N]` and every later occurrence prints `-> @N` instead of repeating the
+subtree — entities that are never referenced again carry no tag — one
 material serving seven bodies, or two races sharing one wardrobe
 record+key, appears once. Per-body listings cover every race/sex the item
 binds; entry parts show their **LOD values** (`lod=10`), dye-variant

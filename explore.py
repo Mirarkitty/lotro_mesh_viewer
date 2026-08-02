@@ -68,16 +68,20 @@ def _h(v):
 
 class _Refs:
     """First expansion of an entity gets a [@N] tag; every later encounter
-    prints a one-line `-> @N` back-reference instead of the subtree."""
+    prints a one-line `-> @N` back-reference instead of the subtree.
+    `used` records which numbers were actually back-referenced, so
+    finalize_refs() can drop the tags nothing points at."""
 
     def __init__(self):
         self.map = {}
         self.next = 1
+        self.used = set()
 
     def get(self, kind, key):
         """(ref_number, first_time)"""
         k = (kind, key)
         if k in self.map:
+            self.used.add(self.map[k])
             return self.map[k], False
         self.map[k] = self.next
         self.next += 1
@@ -85,6 +89,48 @@ class _Refs:
 
 
 REFS = _Refs()
+
+_REF_RE = None
+
+def finalize_refs(roots):
+    """Post-process built trees before printing: strip `[@N]` tags nothing
+    references, and renumber the surviving refs 1..k in appearance order.
+    Must run ONCE over ALL trees of an invocation (refs cross trees)."""
+    import re
+    order = []
+
+    def collect(n):
+        for m in re.finditer(r"\[@(\d+)\]", n.label):
+            num = int(m.group(1))
+            if num in REFS.used and num not in order:
+                order.append(num)
+        for c in n.children:
+            collect(c)
+
+    for r in roots:
+        collect(r)
+    ren = {old: i + 1 for i, old in enumerate(order)}
+
+    def fix(n):
+        # first the definition tags (drop unused, renumber used via a
+        # placeholder so the second pass can't double-rewrite them) ...
+        n.label = re.sub(
+            r"\s*\[@(\d+)\]",
+            lambda m: ("  [%%%d%%]" % ren[int(m.group(1))])
+                      if int(m.group(1)) in ren else "",
+            n.label)
+        # ... then the back-references (all used by definition)
+        n.label = re.sub(
+            r"@(\d+)\b",
+            lambda m: "%%%s%%" % ren[int(m.group(1))]
+                      if int(m.group(1)) in ren else m.group(0),
+            n.label)
+        n.label = re.sub(r"%(\d+)%", r"@\1", n.label)
+        for c in n.children:
+            fix(c)
+
+    for r in roots:
+        fix(r)
 
 
 # ---- catalog access ---------------------------------------------------------
@@ -522,12 +568,12 @@ def main():
     config.apply_args(args)
 
     q = args.query.strip()
-    if q.lower().startswith("0x"):
-        print("\n".join(dig_did(int(q, 16), deep=args.deep).render()))
-        return
-    if q.isdigit():
-        # decimal DIDs (LotroCompanion itemIds are plain-decimal item DIDs)
-        print("\n".join(dig_did(int(q), deep=args.deep).render()))
+    if q.lower().startswith("0x") or q.isdigit():
+        # hex, or decimal DIDs (LotroCompanion itemIds are decimal item DIDs)
+        tree = dig_did(int(q, 16 if q.lower().startswith("0x") else 10),
+                       deep=args.deep)
+        finalize_refs([tree])
+        print("\n".join(tree.render()))
         return
 
     # name search over the catalog
@@ -553,8 +599,10 @@ def main():
     print("%d distinct item%s match %r%s\n" % (
         len(rows), "s" if len(rows) != 1 else "", q,
         " (showing %d)" % args.limit if len(rows) > args.limit else ""))
-    for r in rows[:args.limit]:
-        print("\n".join(dig_item(r["did"], deep=args.deep).render()))
+    trees = [dig_item(r["did"], deep=args.deep) for r in rows[:args.limit]]
+    finalize_refs(trees)       # refs cross trees; resolve once over all
+    for t in trees:
+        print("\n".join(t.render()))
         print()
     # account for everything that matched but was not expanded, and why
     if dupes or len(rows) > args.limit:
